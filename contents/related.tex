@@ -1,55 +1,102 @@
 \chapter{文獻回顧}
 \label{c:related}
-\section{名詞解釋}
-\begin{itemize}
-	\item[一、]主動區（Active region）：\\[5pt]
-	鋅擴散下方的
-	\item[二、]護環（Guard ring）：\\[5pt]
-	\hspace*{4mm} 這是在主要的鋅擴散
-\end{itemize}
-\section{發展背景}
-Attention plays an important role in human vision. For example, when
-we look at an image, our eye movements comprise a succession of {\em
-fixations} (repetitive positioning of eyes to parts of the image)
-and {\em saccades} (rapid eye jump). Those parts of the image that
-cause eye fixations and capture primary attention are called {\em
-regions of interest} (ROIs). Studies in visual attention and eye
-movement have shown that humans generally only attend to a few ROIs.
-Detecting these visually attentive regions in images is challenging
-but useful in many multimedia applications, such as automatic
-thumbnail cropping, object recognition, content-based image
-retrieval, adaptive image compression and automatic browsing in
-small-screen devices.
+\section{元件結構}
+\subsection{磊晶結構}
+在各種光波波長中，由於1550 nm波長對人眼較為安全（retina-safe）~\cite{saito2004experimental}\cite{hey2014novel}，以及在光纖通訊時，相較於因Al$_x$Ga$_{1-x}$As雷射而使用的800-900 nm波長，1550 nm光訊號更不易在光纖中衰退~\cite{campbell2016recent}，所以大多數光偵測器都偏好使用能吸收1550 nm波長的In$_{0.53}$Ga$_{0.47}$As作為吸光物質。為了偵測到極微弱的光源，甚至是偵測到單顆光子，我們需要藉由載子的撞擊游離現象（impact ionization）產生雪崩效應（avalanche breakdown）以放大極微弱入射光產生之極微弱光電流。因此，In$_{0.53}$Ga$_{0.47}$As需要有足夠強的電場，如此載子才能快速地由電場獲得足夠能量以撞擊游離出新的電子電洞對~\cite{capasso1985physics}，這種奠基於晶格動量守恆與能量守恆所計算得到的成功撞擊游離前之載子能量即被稱為閾值能量（threshold energy）~\cite{capasso1985physics}\cite{anderson1972threshold}。
 
-Many algorithms have been proposed for automatic ROI detection in
-images. Unfortunately, these methods were often evaluated only on
-specific and small data sets that are not publicly available. The
-lack of published {\em benchmarks} makes experiments non-repeatable
-and quantitative evaluation difficult. However, as recommended by
-the latest ACM SIGMM retreat, repeatable experiments using published
-benchmarks are important for advancing the multimedia research
-field~\cite{Rowe:2005:ASR}.
-\section{運作原理}
-\section{設計準則}
-\begin{figure}
+然而，因為訊號強度與元件之光電流與暗電流的電流差值正相關~\cite{nishida1979ingaasp}，因此假如In$_{0.53}$Ga$_{0.47}$As電場太大，那麼很可能會因能帶穿隧效應而產生顯著暗電流~\cite{forrest1980evidence}\cite{Ando:1980fn}，從而降低訊號辨識度。因此，為了在保有In$_{0.53}$Ga$_{0.47}$As足夠低電場的同時，仍能產生顯著撞擊游離效應，人們陸續提出將負責藉由撞擊游離效應以放大微弱光電流的倍增區與負責吸收1550 nm光波的吸收區分離的結構，稱為SAM分離式雪崩光電二極體（Separated-absorption-multiplication avalanche photodiode，SAM-APD）~\cite{nishida1979ingaasp}\cite{susa1980new}\cite{cook1981low}\cite{kim1981high}，如圖（\ref{fig:SAM-APD}）。基本上人們仍採用In$_{0.53}$Ga$_{0.47}$As作為吸收層，但是將發生雪崩效應的區域改為在與In$_{0.53}$Ga$_{0.47}$As晶格匹配（lattice-matched）的InP上，並在這兩層中間夾帶一具有高摻質濃度的電荷層（charge layer）以將吸收層的高電場降得足夠低，以減少其能帶穿隧效應，因此又有人將此結構稱之為 InP/InGaAs SACM-APD。由於InP能隙較大，所以其穿隧效應相對雪崩效應較為不顯著，如此一來就能解決暗電流太大的問題。不過由於InP與In$_{0.53}$Ga$_{0.47}$As之價帶並不連續，所以電洞會累積在InP/In$_{0.53}$Ga$_{0.47}$As的異質接面上~\cite{forrest1982optical}，反而減少了元件頻寬。因此，為了減緩限制了元件頻寬的電洞積累現象，Forrest~\cite{forrest1982optical}、Matsushima~\cite{matsushima1981new}\cite{matsushima1982high}、Yasuda~\cite{yasuda1983heterojunction}與Campbell~\cite{campbell1983high}等人提出了在InP與In$_{0.53}$Ga$_{0.47}$As之間夾帶一層漸變層（grading layer）的想法，基本上這層漸變層是由In$_{1-x}$Ga$_x$As$_y$P$_{1-y}$化合物半導體組成，其能隙介於InP的寬能隙與In$_{0.53}$Ga$_{0.47}$As的窄能隙之間，而這種結構就被進一步稱為InP/InGaAsP/InGaAs SAGCM-APD，如圖（\ref{fig:SAGCM-APD}）。現今的1550 nm雪崩光電二極體結構大多是以InP/InGaAsP/InGaAs SAGCM-APD為雛形去進一步改良而成的。
+\iffalse
+緊接著，世上首先將InP/InGaAs雪崩光電二極體作為單光子偵測器的人為1984年的Levine與Bethea~\cite{levine1984single}。
+\fi
+\begin{figure}[h]
 \centering
-\includegraphics[width=0.45\textwidth]{kl}
-\caption{kl-distance}
-\label{kl}
+\begin{subfigure}{.45\textwidth}
+\centering
+\includegraphics[width=0.75\textwidth]{files/SAM-APD.png}
+\caption{SAM磊晶結構}
+\label{fig:SAM-APD}
+\end{subfigure}
+\begin{subfigure}{.45\textwidth}
+\centering
+\includegraphics[width=0.75\textwidth]{files/SAGCM-APD.png}
+\caption{SAGCM磊晶結構}
+\label{fig:SAGCM-APD}
+\end{subfigure}
+\caption{磊晶結構示意圖}
+\label{fig:Epitaxial-structure}
+\end{figure}
+\subsection{平面結構}
+除了內部磊晶結構，APD又可根據其外形分為塔台（mesa）與平面（planar）兩種結構，如下圖（\ref{fig:Mesa-Planar-structure}）所示。根據~\cite{forrest1989avalanche}，塔台結構非常不適合用在實際元件操作上，具體原因為塔台結構在PN接面周圍有顯著漏電流，而且可靠度較低~\cite{ando1981ingaas}，因此現今大多都是採用平面結構，而本研究也採用平面結構。
+\begin{figure}[h]
+\centering
+\begin{subfigure}{.45\textwidth}
+\centering
+\includegraphics[width=0.75\textwidth]{files/Mesa-structure.png}
+\caption{塔台結構}
+\label{fig:mesa}
+\end{subfigure}
+\begin{subfigure}{.45\textwidth}
+\centering
+\includegraphics[width=0.75\textwidth]{files/Planar-structure.png}
+\caption{平面結構}
+\label{fig:planar}
+\end{subfigure}
+\caption{塔台結構與平面結構示意圖}
+\label{fig:Mesa-Planar-structure}
+\end{figure}
+\subsection{護環結構}
+Chynoweth等人~\cite{chynoweth1956photon}於1956年發現，PN矽二極體在高逆偏時所發生的雪崩效應，並非均勻地發生在PN接面上，反而是發生在許多個微小的亮點上，此現象在當時被稱為微電漿現象（microplasma）。而之所以會有亮點，是因為該元件有顯著的輻射復合效應（radiative recombination effect）。在1958年，Chynoweth與Pearson~\cite{chynoweth1958effect}解釋了上述這些崩潰亮點通常發生在刃差排（edge dislocation）上，並且發現到，即便PN接面處並沒有任何的差排，那麼崩潰效應也不會發生在均勻接面上，而是會發生在接面的邊緣。而只有當PN接面不僅沒有刃差排，也沒有邊緣區時，元件才會均勻地在PN接面處發生崩潰。隨後，Bartdorf與Chynoweth~\cite{batdorf1960uniform}於1960年利用低摻雜區作出了具有護環（Guard ring）的二極體結構，以去除邊緣崩潰現象，如圖（\ref{fig:first-GR-structure}）所示，其中的$\pi$區域即為低摻雜區。
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.75\textwidth]{files/first-GR-structure.png}
+\caption[Bartdorf與Chynoweth設計的護環結構]{Bartdorf與Chynoweth設計的護環結構~\cite{batdorf1960uniform}}
+\label{fig:first-GR-structure}
 \end{figure}
 
-\begin{table}[t]
-\begin{center}
-\begin{tabular}{lcc}
+對於雪崩光電二極體而言，之所以希望崩潰效應發生在中央區，是由於邊緣崩潰會使元件在提高偏壓時，光電流增益最多不超過$6$，使得雪崩光電二極體沒辦法顯著放大光電流~\cite{ando1981ingaas}。因此倘若要使雪崩光電二極體發揮其放大光訊號的功能，那麼就一定得設計護環以降低邊緣區電場。一個理想的情況是，邊緣崩潰電壓比中央崩潰電壓還要高，如此一來我們就不需擔心邊緣崩潰，也就不需要設計護環。
 
-\hline
-                    &  {\small Itti's method}     & {\small Fuzzy growing}    \\
-\hline
-{\small Precision}           &  0.4475    & 0.4506 \\
-{\small Recall}              &  0.5515    & 0.5542 \\
-\hline
+然而在1965年，Gibbons與Kocsis~\cite{gibbons1965breakdown}即提到平面結構崩潰電壓往往都比塔台結構來得小，其中一個可能就是平面結構的邊緣崩潰電壓比中央崩潰電壓來得小，而塔台結構之崩潰電壓即平面結構之中央區崩潰電壓，所以平面結構在中央區發生崩潰之前，其邊緣區就已經先崩潰了。對此，Armstrong、Gibbons、Kocsis與Sze等人也陸續討論了邊緣擴散輪廓的曲率半徑與摻質濃度對崩潰電壓的影響~\cite{gibbons1965breakdown}\cite{armstrong1957theory}\cite{sze1966effect}。他們假設擴散輪廓為理想的平面—圓弧形，如圖（\ref{fig:planar-cylindrical-junction-edge-breakdown}）所示。並假設在陡接面（abrupt junction）情形下，求出偏壓對中央與邊緣電場的分佈，再求出崩潰電壓隨擴散深度（邊緣區之圓弧半徑）或摻雜濃度的關係，最後得到了與實驗一致的結果。Leistiko~\cite{leistiko1966breakdown}進一步設計了兩種特殊結構用以研究曲率半徑對崩潰電壓的影響，如圖（\ref{fig:leistiko-special-structures}）所示。用以探討中央區擴散深度不同，但邊緣曲率半徑相同的情況下，崩潰電壓是否會有所不同，實驗結果顯示確實是邊緣曲率半徑決定了崩潰電壓。
 
-\end{tabular}
-\caption[Evaluation of FOA sets]{\small Evaluation of FOA sets. } \label{t:FOA}
-\end{center}
-\end{table}
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.75\textwidth]{files/planar-cylindrical-junction-edge-breakdown.png}
+\caption[平面—圓弧形擴散輪廓示意圖]{平面—圓弧形擴散輪廓示意圖~\cite{gibbons1965breakdown}}
+\label{fig:planar-cylindrical-junction-edge-breakdown}
+\end{figure}
+
+\begin{figure}[h]
+\centering
+\begin{subfigure}[b]{.45\textwidth}
+\centering
+\includegraphics[width=0.75\textwidth]{files/leistiko-a.png}
+\caption{深護環結構}
+\label{fig:leistiko-guard-ring}
+\end{subfigure}
+\begin{subfigure}[b]{.45\textwidth}
+\centering
+\includegraphics[width=0.75\textwidth]{files/leistiko-b.png}
+\caption{蝕刻面結構}
+\label{fig:leistiko-etched-surface}
+\end{subfigure}
+\caption[用以研究邊緣曲率半徑對崩潰電壓之影響所設計的特殊結構]{用以研究邊緣曲率半徑對崩潰電壓之影響所設計的特殊結構~\cite{leistiko1966breakdown}}
+\label{fig:leistiko-special-structures}
+\end{figure}
+
+上述諸多分析讓我們確定邊緣崩潰的存在，因此倘若要使APD元件正常運作，那麼就一定得設計護環以改變邊緣區電場分佈，降低邊緣區電場，提高增益。對此，Donnelly於1979年設計了特殊$p^+-n-n^-$接面的護環結構以提升元件增益~\cite{donnelly1979planar}，Ando於1981年提出應該設計護環已抑制使得增益只有$5.5$的邊緣崩潰~\cite{ando1981ingaas}，Shirai於1982年藉由線性漸變PN接面護環（linearly-graded junction）與電荷層結構，將元件增益提升到$20$~\cite{shirai1982planar}。Liu與Forrest~\cite{liu1988simple}\cite{liu1992planar}提出了雙懸護環結構（double floating guard ring），如圖（\ref{fig:double-fgr-liu}）所示。他們發現到沒有護環的元件在崩潰時，電流爬升得比較緩（soft breakdown），由此可見護環的功用~\cite{liu1988simple}。此外他們在~\cite{liu1992planar}進一步說明了護環原理，他們認為因為護環能夠擴展空乏區，所以才使得等電位線變得更稀疏，邊緣電場更小。然而，即便設計了兩個懸護環，其邊緣電場$E_2$似乎也沒有比中央電場$E_m$來得小，詳見\cite{liu1992planar}中之圖十，因此護環設計仍不明確。綜上所述，無論如何，護環結構都是使平面結構之雪崩光電二極體正常運作的關鍵，所以本研究也設計了幾種護環結構加以分析，將在第\ref{c:design}、\ref{c:experiment}章進一步說明之。
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.9\textwidth]{files/double-fgr-liu.png}
+\caption[雙懸護環結構示意圖]{雙懸護環結構示意圖~\cite{liu1992planar}}
+\label{fig:double-fgr-liu}
+\end{figure}
+
+\section{暗電流成因}
+對於當前主流雪崩光電二極體的SAGCM分離式結構而言，能帶穿隧電流（band-to-band tunneling）已不再是最重要的因素，反而是先前被忽略的熱效應開始扮演起關鍵角色~\cite{Acerbi:2013bz}。因此為了持續降低暗電流，我們需要進一步研究熱效應產生的電流來源。雖然Shockley~\cite{shockley1952statistics}等人早在1952年就提出電子經由缺陷能井從價帶跳躍至傳導帶的SRH復合效應（SRH recombination），但基於崩潰需求，InP需要處在強電場中，並且In$_{0.53}$Ga$_{0.47}$As能隙（band gap）並不大，因此並不能排除電子在從缺陷能井跳躍至傳導帶的過程中，直接向旁邊穿隧至傳導帶的可能性~\cite{chynoweth1961excess}，即所謂的缺陷輔助穿隧效應（Trap-assisted tunneling，TAT）。因此，Hurkx~\cite{hurkx1989modelling}在1989年提出了基於SRH復合效應且便於數值模擬的TAT模型，說明電場造成的缺陷輔助穿隧效應相當於縮短了SRH復合生命期（field-enhanced SRH lifetime），即增強了SRH復合效應。
+
+然而，Hurkx沒有在文中完整交待其模型的推導過程，並提及他並不清楚此穿隧質量應該帶多少的值，只知道0.2似乎是最佳選擇~\cite{hurkx1989modelling}，這使得人們對於其模型該採用多少的穿隧質量似乎沒有共識。就我目前所知，只有在X. Ji~\cite{ji2013deep}提及他對In$_{0.78}$Ga$_{0.22}$As採用了0.03的等效質量以代入Hurkx TAT 模型，至於InP則沒有找到相關文獻。我將在第\ref{cs:SRH-recombination}節推導其理論，以確定其等效穿隧質量之物理意義。
+
+除了等效穿隧質量以外，材料的缺陷能井（trap level）與生命期也是Hurkx TAT模型中的必要參數，但目前關於從元件I-V電性推算缺陷能井的方法似乎仍僅能在假設沒有TAT效應的前提下，將暗電流對溫度倒數作圖並求其斜率，藉此得到缺陷能井~\cite{wen2018origin}，隨後再將其代入含有TAT效應的模型中，而這顯然是不一致的做法，甚至此斜率可能也是元件偏壓的函數，從而無法決定究竟該使用哪個偏壓下的擬合斜率。又因為SRH生命期相當難以測量，比較可靠的方法是使用數值模擬的方式~\cite{liu1999excess}，再加上SRH生命期跟該製程造成的缺陷濃度密切相關，所以SRH生命期的選擇也造成了使用Hurkx TAT模型的困難。事實上，Hurkx~\cite{hurkx1992new}在1992年就有整理出適合用於擬合並求出缺陷能井與SRH生命期的公式雛型，只不過似乎從來沒有被人拿來改寫並使用。對此，我會在樣品分析之第\ref{cs:TAT-fitting}節推導其擬合公式並討論之。
+
+最後，雖然當前採用之SAGCM分離式結構之能帶穿隧效應較小，但若需要有著足夠小的暗電流，那麼仍需要針對選定的其他磊晶層之厚度與濃度，設計合適的電荷層濃度，以將吸收層電場降得足夠低，使能帶穿隧電流足夠小。許多文獻~\cite{campbell2016recent}採用的吸收層200 kV/cm臨界電場是基於Ando~\cite{Ando:1980fn}於1980年的分析。Ando先設計了多種N型摻質濃度的In$_{0.53}$Ga$_{0.47}$As的P$^+$-N二極體，並藉能帶穿隧模型公式驗證In$_{0.53}$Ga$_{0.47}$As之暗電流來自能帶穿隧效應。接著再設計InP/In$_{0.53}$Ga$_{0.47}$As SAM-APD，並指出因為InP崩潰所需電場都相同，所以InP無可避免地造成了幾乎不隨In$_{0.53}$Ga$_{0.47}$As中之N型摻質濃度變化的能帶穿隧電流，因此倘若要使InP/In$_{0.53}$Ga$_{0.47}$As SAM結構有最小的暗電流，那麼就必須讓In$_{0.53}$Ga$_{0.47}$As有著比InP還要小的能帶穿隧電流，藉此發現只有在In$_{0.53}$Ga$_{0.47}$As電場小於200 kV/cm時才會滿足此條件。然而，由於我們採用的SAGCM結構裡比SAM結構多了一層電荷層（charge layer），所以Ando提出的200 kV/cm最大吸收層電場並不見得適用我們的SAGCM結構，我將在元件模擬之第\ref{cs:btb-tunneling}節說明針對SAGCM結構的能帶穿隧電流分析。

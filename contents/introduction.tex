@@ -1,53 +1,40 @@
 \chapter{緒論}
 \label{c:intro}
 \section{研究背景}
-在
-
-
-
-所謂的逆向模擬~\cite{Zeman:1994vp}\cite{Stork:1983tx}
-Attention plays an important role in human vision. For example, when
-we look at an image, our eye movements comprise a succession of {\em
-fixations} (repetitive positioning of eyes to parts of the image)
-and {\em saccades} (rapid eye jump). Those parts of the image that
-cause eye fixations and capture primary attention are called {\em
-regions of interest} (ROIs). Studies in visual attention and eye
-movement have shown that humans generally only attend to a few ROIs.
-Detecting these visually attentive regions in images is challenging
-but useful in many multimedia applications, such as automatic
-thumbnail cropping, object recognition, content-based image
-retrieval, adaptive image compression and automatic browsing in
-small-screen devices.
-
-Many algorithms have been proposed for automatic ROI detection in
-images. Unfortunately, these methods were often evaluated only on
-specific and small data sets that are not publicly available. The
-lack of published {\em benchmarks} makes experiments non-repeatable
-and quantitative evaluation difficult. However, as recommended by
-the latest ACM SIGMM retreat, repeatable experiments using published
-benchmarks are important for advancing the multimedia research
-field~\cite{Rowe:2005:ASR}.
+近年興起了人工智慧的風潮，人們對於自駕車、無人機等任何關於人工智慧的科技應用都甚感興趣，對於國防軍事工業而言亦是如此，而其中一個用以獲取外在環境訊息的關鍵科技即光學雷達（light detection and ranging，Lidar）。由於光學雷達具有極高解析度，能夠偵測相當微弱的光源，所以除了能夠用在自駕車中的行人與障礙物偵測~\cite{hecht2018lidar}，也能用在軍事國防領域中的地形探測~\cite{dabney2010slope}\cite{degnan2002photon}、衛星雷射測距~\cite{degnan1985satellite}\cite{sun2013simultaneous}與自然環境參數測量~\cite{zwally2002icesat}等需要高解析度成像的場合。雖然雷達（radio detection and ranging，Radar）也是使用電磁波測距離，但由於光學雷達是使用極短的脈衝波，所以其解析度比使用無線電波的雷達更高出許多。因此，作為光學雷達之光感測器的雪崩光電二極體（avalanche photodiode，APD）就格外受重視~\cite{weitkamp2006lidar}。而除了光學雷達會使用到雪崩光電二極體以外，舉凡像是量子密碼學（quantum cryptography）~\cite{gisin2002quantum}、時間解析光譜儀（time-resolved spectroscopy）~\cite{bargigia2011time}等領域也都會用到雪崩光電二極體。
 \section{研究動機}
+由於市場對於解析度要求越來越高，而光偵測器的核心概念就是藉由照光前後之劇烈電流變化，以作為測光判准。因此，倘若尚未照光時之暗電流太大，那麼就會降低該光偵測器的解析度。換言之，雪崩光電二極體的暗電流成因始終是人們所感興趣的議題。本論文的研究重點即為SAGCM分離式結構（Separated-absorption-grading-charge-multiplication，SAGCM）的InP/InGaAsP/In$_{0.53}$Ga$_{0.47}$As雪崩光電二極體之暗電流成因。而在諸多暗電流成因中，最重要的不外乎是缺陷輔助穿隧電流（trap-assisted tunneling，TAT）、能帶穿隧電流（band-to-band tunneling）與崩潰電流（avalanche generation）。然而，常見的雪崩光電二極體Hurkx TAT電流模型含有物理意義不明的等效穿隧質量參數~\cite{hurkx1989modelling}。而即便了解其意義，目前也缺乏將實驗數據對此模型擬合的方法，畢竟其中還涉及與製程環境密切相關的SRH生命期（lifetime）參數，所以並不容易用此模型解釋元件電流成因。此外，常見的吸收層臨界電場是基於缺乏電荷層之SAM分離式結構所計算得來的~\cite{Ando:1980fn}，而這並不見得適用於我們採用的SAGCM結構。
+
+最後，雖然平面結構之SAGCM-APD有著護環（guard ring）設計，而能使元件於中央區崩潰以放大光訊號，但是護環設計相當困難，且現有文獻大多沒有提及更多關於護環設計細節。
+\section{研究目的}
+我希望能確認，在Hurkx缺陷輔助穿隧效應模型中，穿隧等效質量之物理意義，提出用以找出Hurkx模型參數之擬合公式，並針對SAGCM結構之雪崩光電二極體提出能夠將能帶穿隧電流壓抑地足夠低的設計方法與結構參數。最後再藉我們設計的各種擴散輪廓、光罩圖樣元件，進行電性分析並試著統整歸納出最佳護環設計條件。
+\section{研究方法}
+由於TAT電流與製程條件有關，所以沒辦法事先模擬並找出正確參數。因此，為了設計暗電流足夠小的元件，本研究將先以能相對較確定的能帶穿隧效應出發。首先藉現有實驗數據~\cite{Ando:1980fn}找到較可靠的能帶穿隧模型參數，接著使用Sentaurus TCAD模擬元件電性，以尋找最佳設計參數。再按照Hurkx模型的發展脈絡~\cite{hurkx1989modelling}，從等效質量近似（Effective-mass approximation）理論出發，探求其穿隧質量之物理意義。並且將Hurkx提出的電流模型，改寫為適合我們用來擬合的數學形式，並代入上述推得的等效質量，由最小平方法擬合我們元件的I-V實驗數據，求得最佳擬合的缺陷能井（trap level）與SRH生命期參數。最後，我們也設計了幾種不同的護環結構，希望藉由擊穿電壓與崩潰電壓對護環構造之變化，尋找最有效的護環結構。
 \section{論文架構}
-\begin{figure}
-\centering
-\includegraphics[width=0.45\textwidth]{kl}
-\caption{kl-distance}
-\label{kl}
-\end{figure}
-
-\begin{table}[t]
-\begin{center}
-\begin{tabular}{lcc}
-
-\hline
-                    &  {\small Itti's method}     & {\small Fuzzy growing}    \\
-\hline
-{\small Precision}           &  0.4475    & 0.4506 \\
-{\small Recall}              &  0.5515    & 0.5542 \\
-\hline
-
-\end{tabular}
-\caption[Evaluation of FOA sets]{\small Evaluation of FOA sets. } \label{t:FOA}
-\end{center}
-\end{table}
+第一章概述了研究動機與目的，第二章將說明APD的結構發展脈絡、暗電流成因討論與名詞解釋。第三章將詳細說明於Sentaurus TCAD半導體元件工藝模擬軟體中，與APD電性密切相關的物理模型、設定參數、相關模擬實驗以及改善模擬收斂性的方法。第四章則說明元件設計與尋找最佳結構的方法。第五章則是樣品量測分析，包含樣品結構、I-V電性分析等。
+\section{名詞解釋}
+\begin{enumerate}
+	\item 主動區：Active region，即外加偏壓控制的元件中央區。
+	\item 護環：Guard ring，用以抑制邊緣崩潰之擴散結構。
+	\item 懸護環：Floating guard ring，與主動區沒有接觸的護環。
+	\item 側護環：Attached guard ring，與主動區互相接觸的護環。
+	\item 陡接面：Abrupt junction，在本論文中是指如 $P^+$-$N$ 之二極體接面。
+	\item 禁帶：Forbidden region，指半導體能帶圖中，位於價帶與傳導帶之間的區域。
+	\item 能井：Trap level，是指摻質（impurity）在禁帶中產生的能階。
+	\item 缺陷輔助穿隧：Trap-assisted tunneling，在本論文中是指 Hurkx 提出的 Trap-assisted tunneling 模型~\cite{hurkx1989modelling}。
+	\item 能帶穿隧：Band-to-band tunneling，與缺陷輔助穿隧並不同。能帶穿隧是直接由價帶穿隧至傳導帶，中間並沒有經過缺陷能井（trap level）的協助。
+	\item 刃差排：edge dislocation。若有個晶面並非延伸整個晶體，而是終止於某條線上，那麼這種不規則排列即被稱為刃差排。
+	\item 原初生命期：即在常溫$300\left.\mathrm{K}\right.$，半導體內部沒有電場時的SRH生命期，用以區別受電場影響所變化之SRH生命期，即下式中的$\tau_{p0}$、$\tau_{n0}$。
+	\begin{equation}
+	R_\text{SRH}=\frac{np-n_i^2}{\frac{\tau_{p0}}{1+\Gamma_p}(n+n_1)+\frac{\tau_{n0}}{1+\Gamma_n}(p+p_1)}
+	\end{equation}
+	\item 加速度等效質量：acceleration effective-mass，用以區分其他的等效質量定義~\cite{jacoboni2012monte}。具體而言，對於受到外力$\mathbf{F}\equiv\hbar\dot{\mathrm{k}}$之電子波包（wave packet）~\cite{AshcroftMermin1976ch12}，其加速度之第$i$個分量為
+\begin{equation}
+a_i=\frac{dv_i}{dt}=\frac{d}{dt}\left(\frac{1}{\hbar}\frac{\partial \varepsilon}{\partial k_i}\right)=\sum_j\frac{1}{\hbar}\frac{\partial^2\varepsilon}{\partial k_i\partial k_j}\dot{k}_j=\sum_j\frac{1}{\hbar^2}\frac{\partial^2\varepsilon}{\partial k_i\partial k_j}F_j\label{eq:acceleration}
+\end{equation}
+其中，加速度等效質量之反矩陣元素$(m^{-1})_{ij}$為
+\begin{equation}
+\left(\frac{1}{m}\right)_{ij}\equiv \frac{1}{\hbar^2}\frac{\partial^2\varepsilon}{\partial k_i\partial k_j}\label{eq:inverse-of-effective-mass}
+\end{equation}
+由於$(m^{-1})_{ij}$是來自外力與加速度之比例關系，所以稱之為加速度等效質量。
+\end{enumerate}

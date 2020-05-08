@@ -1,19 +1,1020 @@
-\chapter{TCAD 模擬}\label{c:modeling}
-\section{數值模擬原理}
-\section{物理模型設定}
-\subsection{鋅擴散模型}
-\subsection{連續方程式}
-Boltzmann transport equation is a continuity equation for $f(r,k,t)$ (6.730 Physics for Solid State Applications Lecture 32: Introduction to Boltzmann Transport).
-\subsection{能帶穿隧模型}
-\subsection{遷移率模型}
-\subsection{SRH復合模型}
-\subsubsection{電場效應}
-\subsubsection{濃度效應}
-\subsection{撞擊游離模型}
+\chapter{元件模擬}\label{c:modeling}
+我們使用的模擬軟體為由國家半導體研究中心（Taiwan Semiconductor Research Institute，TSRI）贊助的Synopsys Sentaurus 半導體工藝與元件模擬軟體（Technology Computer Aided Design，TCAD）。本章將介紹對於雪崩光電二極體而言最為重要的電性模型之理論與參數，包含了鋅擴散、能帶穿隧效應、缺陷輔助穿隧效應與游離撞擊效應。
+\section{鋅擴散模型}
+常見擴散現象學模型（phenomenological model）為菲克定律（Fick's law）。根據質量守恆定律，倘若沒有任何化學反應，那麼下式恆成立：
+\begin{equation}
+\frac{\partial C}{\partial t}+\nabla\cdot J = 0\label{eq:Zn-diffusion-mass-conservation}
+\end{equation}
+其中，$C$為物質濃度（$\mathrm{cm}^{-3}$），$J$為擴散通量（diffusion flux），為單位面積的擴散速率，單位為$(\mathrm{cm}^{-3}/\mathrm{s})/\mathrm{cm}^2$，可使用菲克第一定律描述之：
+\begin{equation}
+J=-D\nabla C\label{eq:fick-first-law}
+\end{equation}
+其中，$D$為擴散率（diffusivity），單位為$\mathrm{cm}^2/\mathrm{s}$。因此我們可將方程式（\ref{eq:fick-first-law}）代入方程式（\ref{eq:Zn-diffusion-mass-conservation}）中，即可得到廣義的——擴散率並非定值的——菲克第二定律：
+\begin{equation}
+\frac{\partial C}{\partial t}=\nabla\cdot\left(D\nabla C\right)\label{eq:fick-second-law}
+\end{equation}
+\hspace{2em}根據對現有磊晶廠的認識，原則上是以擴散的方式於InP中摻雜鋅（Zn）原子。目前已有不少文獻探討鋅在InP中的擴散機制~\cite{van1987zinc}及其SIMS量測結果~\cite{chang1964diffusion}\cite{knevzevic2016analysis}。根據~\cite{van1987zinc}，由於鋅擴散屬於所謂的為間隙—空位缺陷（interstitial-substitutional）機制，使其擴散率與載子濃度有關，因此，TCAD中代表常數擴散率的常數模型（constant model）~\cite{process2016release}即不適用，於是我們選擇了考慮擴散率與載子濃度關係的費米模型（Fermi model）\cite{knevzevic2016analysis}\cite{process2016release}。由於摻質$A$可能有著不同的價電子數$c$的點缺陷活化態（active state），而每種點缺陷活化態又都對擴散速率$\partial C_A/\partial t$都有所貢獻，因此，倘若該價電子數$z$之摻質$A$是以點缺陷$X$（空位缺陷或間隙缺陷）之型態嵌入該半導體晶格中，並且當此點缺陷被活化（active）時帶有價電子數$c$，那麼代表菲克第二定律的方程式（\ref{eq:fick-second-law}）即改寫為：
+\begin{equation}
+\frac{\partial C_A}{\partial t}=\nabla\cdot\left(\sum_{X,c}D_{AX^c}\nabla C_A^z\right)\label{eq:fermi-diffusion-model}
+\end{equation}
+其中$D_{AX^c}$為此摻質$A$在該半導體中的等效擴散常數，$C_A^z$為價電子數$z$之摻質$A$對擴散貢獻的等效濃度，兩者依序為：
+\begin{equation}
+D_{AX^c}\equiv D_{AX^c}^0\exp\left(-\frac{D_{AX^c}^E}{kT}\right)\left(\frac{n}{n_i}\right)^{-c-z}\label{eq:eff-diffusivity}
+\end{equation}
+\begin{equation}
+C_A^z\equiv C_A^+\left(\frac{n}{n_i}\right)^z\label{eq:eff-concentration}
+\end{equation}
+其中，$n$為半導體中之電子濃度，$n_i$為半導體本質濃度（intrinsic concentration），$D_{AX^c}^0$與$D_{AX^c}^E$為等效擴散率$D_{AX^c}$對溫度$T$的阿瑞尼士模型參數。將方程式（\ref{eq:eff-diffusivity}）與（\ref{eq:eff-concentration}）代入（\ref{eq:fermi-diffusion-model}）後，即可得到TCAD中的費米模型數學形式：
+\begin{equation}
+\frac{\partial C_A}{\partial t}=\nabla\cdot\left\{\sum_{X,c}D_{AX^c}^0\exp\left(-\frac{D_{AX^c}^E}{kT}\right)\left(\frac{n}{n_i}\right)^{-c-z}\nabla\left[C_A^+\left(\frac{n}{n_i}\right)^z\right]\right\}
+\end{equation}
+至於$C_A^+$則為被活化的摻質濃度，我們選擇TCAD中的固體模型（solid model）~\cite{chang1964diffusion}\cite{process2016release}以描述其與固體溶解度$C_A^{SS}$、總摻質濃度$C_A$之關係：
+\begin{equation}
+C_A^+=\cfrac{C_A^{SS}C_A}{C_A^{SS}+C_A}\quad;\quad C_A^{SS}\equiv C_{A,0}^{SS}\exp\left(-\frac{E_A}{kT}\right)
+\end{equation}
+其中，$C_{A,0}^{SS}$與$E_A$則為固體溶解度$C_A^{SS}$對溫度$T$之阿瑞尼士模型參數。上述提及之模型參數均列於表（\ref{t:diffusion-parameter}），其模擬結果與SIMS數據之比較如圖（\ref{fig:SIMS-TCAD-comparison}）所示~\cite{knevzevic2016analysis}。
+\begin{table}[h]
+\begin{center}
+\caption{費米擴散模型參數} \label{t:diffusion-parameter}
+\begin{tabular}{lcc}
+
+\hline
+                    &  參數  & 參考文獻  \\
+\hline
+$z$ &  $2$ &   \\
+$c$ & $1$ & \cite{knevzevic2016analysis} \\
+$C_{A,0}^{SS}(\mathrm{cm}^{-3})$ & $1.4\times10^{25}$ & \cite{chang1964diffusion} \\
+$E_A(\mathrm{eV})$ & $0.92$ & \cite{chang1964diffusion} \\
+$D_{AX^c}^0(\mathrm{cm}^2/\mathrm{s})$ & $10^{-3}$ & \cite{knevzevic2016analysis} \\
+$D_{AX^c}^E(\mathrm{eV})$ & $1.75$ & \cite{knevzevic2016analysis} \\
+\hline
+
+\end{tabular}
+\end{center}
+\end{table}
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.7\textwidth]{files/SIMS-TCAD-comparison.png}
+\caption{鋅擴散之SIMS數據與TCAD模擬結果之比較}
+\label{fig:SIMS-TCAD-comparison}
+\end{figure}
+\clearpage
+\section{能帶穿隧模型}\label{cs:btb-tunneling}
+在SAM-APD中，能帶穿隧（band-to-band tunneling）被視為暗電流主要來源~\cite{forrest1980evidence}\cite{Forrest:1980cna}，因此許多學者提出足以抑制能帶穿隧電流的APD結構~\cite{Ando:1980fn}\cite{Acerbi:2013bz}\cite{Takanashi:1980vg}\cite{Donnelly:2006en}\cite{Verghese:2007bf}，其關鍵在於降低吸收層電場。根據~\cite{Liou:1990uf}，倘若空乏區電場不隨位置變化，那麼陡接面二極體之能帶穿隧電流密度$J$與元件偏壓$V$就有著如下簡單的關係：
+\begin{equation}
+J=cqVE_m\exp\left(-\frac{B^\prime}{E_m}\right)\label{eq:btb-post-processing-model}
+\end{equation}
+其中，$q$為基本電量，$E_m$為空乏區內之最大電場，$c$、$B^\prime$為與能隙$\varepsilon_g$、穿隧質量$m^*$有關的常數。此方程式的好處在於能夠藉由作$\log(J/V)-1/E_m$圖，由斜率與截距求出係數$c$與$B^\prime$，驗證此電流為能帶穿隧電流~\cite{Hurkx:1998wn}。然而，因為TCAD是依據連續方程式模擬載子電流，
+\begin{equation}\label{eq:continuity-equation}
+\begin{aligned}
+\frac{\partial n}{\partial t}&=\frac{1}{q}\nabla\cdot\vec{J}_n+G_\text{net,n}\\[5pt]
+\frac{\partial p}{\partial t}&=-\frac{1}{q}\nabla\cdot\vec{J}_p+G_\text{net,p}
+\end{aligned}
+\end{equation}
+所以能帶穿隧效應僅能以載子再生速率（generation rate）的形式代入模擬~\cite{sentaurus2016sdevice}，單位為$\mathrm{cm}^{-3}\mathrm{s}^{-1}$。在Sentaurus TCAD中，此模型名為Simple model：
+\begin{equation}
+G=AE^P\exp\left(-\frac{B}{E}\right)\label{eq:TCAD-btb-simple-model}
+\end{equation}
+因此，即便是陡接面結構，也無法將方程式（\ref{eq:btb-post-processing-model}）直接運用在數值模擬中。接下來我將推導方程式（\ref{eq:TCAD-btb-simple-model}），再求出能夠用以擬合$A$、$B$與$P$的方程式（\ref{eq:btb-post-processing-model}）。
+\subsection{理論}
+由於電場具有方向性，所以我們能夠將電子能量依照晶格動量$\mathbf{k}$平行與垂直穿隧的分量區分為$\varepsilon_\perp\equiv\hbar^2k^2_\perp/2m^*$、$\varepsilon_\parallel\equiv\hbar^2k_\parallel^2/2m^*$，
+\begin{equation}
+\begin{aligned}\label{eq:directional-energy}
+\varepsilon&=\varepsilon_\parallel + \varepsilon_\perp=\frac{\hbar^2k_\parallel^2}{2m^*}+\frac{\hbar^2k_\perp^2}{2m^*}
+\end{aligned}
+\end{equation}
+其中，$\varepsilon$為能帶能量，$m^*$為諸多等效質量中的加速度等效質量（acceleration effective mass）~\cite{jacoboni2012monte}。加速度等效質量之定義為，對於受到外力$\mathbf{F}\equiv\hbar\dot{\mathrm{k}}$之電子波包（wave packet）~\cite{AshcroftMermin1976ch12}，其加速度之第$i$個分量為
+\begin{equation}
+a_i=\frac{dv_i}{dt}=\frac{d}{dt}\left(\frac{1}{\hbar}\frac{\partial \varepsilon}{\partial k_i}\right)=\sum_j\frac{1}{\hbar}\frac{\partial^2\varepsilon}{\partial k_i\partial k_j}\dot{k}_j=\sum_j\frac{1}{\hbar^2}\frac{\partial^2\varepsilon}{\partial k_i\partial k_j}F_j\label{eq:acceleration}
+\end{equation}
+其中，加速度等效質量之反矩陣元素$(m^{-1})_{ij}$為
+\begin{equation}
+\left(\frac{1}{m}\right)_{ij}\equiv \frac{1}{\hbar^2}\frac{\partial^2\varepsilon}{\partial k_i\partial k_j}\label{eq:inverse-of-effective-mass}
+\end{equation}
+在此我們進一步假設電子能量離傳導帶最低點$\varepsilon_c$並不遠，因此球狀拋物之能帶關係（spherical and parabolic band）成立，此即為方程式（\ref{eq:directional-energy}）之基礎：
+\begin{equation}
+\varepsilon(\mathbf{k})\approx\frac{\hbar^2k^2}{2m^*}\label{eq:spherical-parabolic-band}
+\end{equation}
+為了僅考慮外加電場對禁帶（forbidden region）造成的穿隧機率，可藉等效質量近似（Effective-mass approximation）將薛丁格方程式改寫為
+\begin{equation}
+-\frac{\hbar^2}{2m^*}\frac{d^2\phi}{dx^2}+U(x)\phi(x)=\varepsilon_\parallel\phi(x)
+\end{equation}
+其中，$\phi(x)$為將波函數$\psi(x)$以瓦尼爾函數（Wannier function）基底展開之係數，詳見第\ref{cs:EMA}節。因此，當電場足夠大時，大量的價帶電子就能跨越禁帶中的能障，直接穿隧至傳導帶中，其穿隧機率$P$可用WKB近似寫為~\cite{PhysSMCMoll:forbiddenGap}：
+\begin{equation}
+P\equiv\left\vert\frac{\phi(x_2)}{\phi(x_1)}\right\vert^2\approx\exp\left[-2\int_{x_1}^{x_2}\left|\sqrt{\frac{2m^*}{\hbar^2}\left(\varepsilon_\parallel-U\right)}\right|dx\right]\label{eq:WKB-approximation}
+\end{equation}
+其中，$x_1$與$x_2$為禁帶之外的穿隧起終點。雖然禁帶中的能障形式$\varepsilon-U$並不清楚，但J.L.Moll基於E.O.Kane對InSb的研究~\cite{PhysSMCMoll:forbiddenGap}\cite{kane1960zener}，推測禁帶能障應為如圖（\ref{fig:energy-barrier}）所示的下式：
+\begin{equation}
+\begin{aligned}
+\varepsilon-U&=(\varepsilon_\parallel+\varepsilon_\perp)-U\\[5pt]
+&=-\frac{(\varepsilon_g/2)^2-\varepsilon_c^2}{\varepsilon_g}
+\end{aligned}
+\end{equation}
+其中$\varepsilon_g$為半導體能隙（band gap），$\varepsilon_c$為PN接面之傳導帶能量，即$\varepsilon_c=qEx$，$E$為電場強度。因此，禁帶起終點為$\varepsilon(x_{1,2})-U=0$的位置，
+\begin{equation}
+x_{1,2}=\pm\frac{1}{qE}\left[\left(\frac{\varepsilon_g}{2}\right)^2+\varepsilon_g\varepsilon_\perp\right]^{1/2}\label{eq:turning-points}
+\end{equation}
+因此，穿隧機率$P$可進一步改寫為：
+\begin{equation}
+\begin{aligned}
+P&\approx\exp\left\{-2\int_{x_1}^{x_2}\left|\sqrt{\frac{2m^*}{\hbar^2}\left[\frac{(\varepsilon_g/2)^2-(qEx)^2}{\varepsilon_g}+\varepsilon_\perp\right]}\right|dx\right\}\label{eq:rewritten-WKB-approx}\\[5pt]
+&=\exp\left(-\frac{\pi m^{*1/2}\varepsilon_g^{3/2}}{2\sqrt{2}q\hbar E}\right)\exp\left(-\frac{\varepsilon_\perp}{\bar{\varepsilon}}\right)\quad;\quad\bar{\varepsilon}\equiv\frac{\sqrt{2}q\hbar E}{2\pi m^{*1/2}\varepsilon_g^{1/2}}
+\end{aligned}
+\end{equation}
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.6\textwidth]{files/forbidden-region-energy-barrier.png}
+\caption[能帶穿隧之能障模型]{能帶穿隧之能障模型。紅線為$U-\varepsilon_\parallel$，即位於能帶邊緣（band edge）之電子感受到的能障；綠線則為能帶$\varepsilon$。在$\varepsilon_\perp=0$時，能帶邊緣$x_1$、$x_2$即為古典物理下的轉折點（classical turning point），兩者間隔為$\vert x_1-x_2\vert=\varepsilon_g/qE$。然而倘若$\varepsilon_\perp>0$，那麼電子在走到能帶邊緣之前，就會先在$x_1^\prime$轉折。}
+\label{fig:energy-barrier}
+\end{figure}
+
+接著考慮其穿隧通量（tunneling flux），即每秒每單位體積中有多少電量撞擊於穿隧起點$x_1$試圖穿越該能障至傳導帶$x_2$，單位為$\mathrm{C}/(\mathrm{cm}^3\cdot\mathrm{s})$。考慮圖（\ref{fig:ideal-Brillouin-zone}）之布里淵區（Brillouin zone），對於垂直動量介於$\mathbf{k}_\perp$與$\mathbf{k}_\perp+d\mathbf{k}_\perp$，且$\dot{k_\parallel}=qE/\hbar$的電子，可得到其穿隧通量為：
+\begin{equation}
+\begin{aligned}
+\textup{Flux}\big\vert_{\mathbf{k}_\perp}^{\mathbf{k}_\perp+d\mathbf{k}_\perp}&\equiv \lim_{\Delta t\to0}q\frac{1}{\Delta t}\left[2\times\frac{1}{V}\sum_{\mathbf{k}_\perp}^{\mathbf{k}_\perp+d\mathbf{k}_\perp}(1)\times f_v(\varepsilon)\right]=2\times q\lim_{\Delta t\to0}\frac{1}{\Delta t}\sum_{\mathbf{k}_\perp}^{\mathbf{k}_\perp+d\mathbf{k}_\perp}\frac{\Delta \mathbf{k}}{(2\pi)^3}\times f_v(\varepsilon)\\[5pt]
+&=\frac{2q}{(2\pi)^3}\lim_{\Delta t\to0}\frac{\Delta k_\parallel}{\Delta t}\sum_{\mathbf{k}_\perp}^{\mathbf{k}_\perp+d\mathbf{k}_\perp}\Delta \mathbf{k}_\perp\times f_v(\varepsilon)=\frac{q^2E}{4\pi^3\hbar}2\pi k_\perp dk_\perp f_v(\varepsilon)
+\end{aligned}
+\end{equation}
+\begin{figure}
+\centering
+\hspace*{2.2cm}\includegraphics[width=0.55\textwidth]{files/Cross-section-of-Brillouin-zone.png}
+\caption[簡單立方晶格的布里淵區示意圖]{簡單立方晶格的布里淵區示意圖~\cite{PhysSMCMoll}，圓形為基於球狀能帶（spherical band）假設所繪製之等能量線，箭頭為穿隧方向。其中$k_x=0$為與$k_y$獨立之轉折點（turning point），最大位能發生在$|k|=0$。}
+\label{fig:ideal-Brillouin-zone}
+\end{figure}其中，$f_v(\varepsilon)$為價帶之費米—狄拉克分佈函數（Fermi-Dirac distribution），表示在該能階上存在著電子之機率。再藉由$\varepsilon_\perp=\hbar^2k_\perp^2/2m^*$，可以得到對於垂直能量處在$\varepsilon_\perp$與$\varepsilon_\perp+d\varepsilon_\perp$之電子，每單位半導體體積之穿隧通量為：
+\begin{equation}
+F_\text{incident}=\frac{q^2Em^*f(\varepsilon)}{2\pi^2\hbar^3}d\varepsilon_\perp
+\end{equation}
+接著考慮半導體截面積為$A$且傳導帶能量為$\varepsilon$之對應能階恰好未佔據電子之機率為$1-f_c(\varepsilon)$，可以得到，由價帶穿隧至傳導帶的穿隧電流即為：
+\begin{equation}
+\begin{aligned}
+\text{Current}\big\vert_v^c&=\text{Incident flux}\times\text{tunneling probability}\times\text{unoccupied probability}\times\text{volume}\\[5pt]
+&=\frac{q^2Em^*f_v(\varepsilon)}{2\pi^2\hbar^3}d\varepsilon_\perp\times\exp\left(-\frac{\pi m^{*1/2}\varepsilon_g^{3/2}}{2\sqrt{2}qE\hbar}\right)\exp\left(-\frac{\varepsilon_\perp}{\bar{\varepsilon}}\right)\times[1-f_c(\varepsilon)]\times Adx
+\end{aligned}
+\end{equation}
+以相同方法可得到對於垂直能量介於$\varepsilon_\perp$與$\varepsilon_\perp+d\varepsilon_\perp$之電子，從傳導帶穿隧至價帶之能帶穿隧電流密度為：
+\begin{equation}
+dJ_\text{BTB}=\frac{q^2Em^*}{2\pi^2\hbar^3}\exp\left(-\frac{\pi m^{*1/2}\varepsilon_g^{3/2}}{2\sqrt{2}q\hbar E}\right)\exp\left(-\frac{\varepsilon_\perp}{\bar{\varepsilon}}\right)\left[f_v(\varepsilon)-f_c(\varepsilon)\right]d\varepsilon_\perp dx
+\end{equation}
+由於能帶穿隧之等效載子再生速率可定義為：
+\begin{equation}
+G_\text{BTB}\equiv\frac{1}{q}\frac{dJ_\text{BTB}}{dx}
+\end{equation}
+所以在$f_v(\varepsilon)\approx1$、$f_c(\varepsilon)\approx0$之近似下，可以得到：
+\begin{equation}
+\begin{aligned}
+G_\text{BTB}(x)=\frac{qm^*}{2\pi^2\hbar^3}E\exp\left(-\frac{\pi m^{*1/2}\varepsilon_g^{3/2}}{2\sqrt{2}q\hbar E}\right)\bar{\varepsilon}\int_0^{\varepsilon,\varepsilon_v-\varepsilon}\exp\left(-\frac{\varepsilon_\perp}{\bar{\varepsilon}}\right)d\left(\frac{\varepsilon_\perp}{\bar{\varepsilon}}\right)
+\end{aligned}
+\end{equation}
+上式之積分上限$(\varepsilon,\varepsilon_v-\varepsilon)$取決於位置$x$上的穿隧能量$\varepsilon$，若$\varepsilon<\varepsilon_v/2$，則為前者，反之則後者~\cite{PhysSMCMoll}。由於通常$\bar{\varepsilon}\ll\varepsilon$，所以該積分項可近似為$1$。整理後可得：
+\begin{equation}
+G_\text{BTB}=\left(\frac{2m^*}{\varepsilon_g}\right)^{1/2}\frac{q^2}{(2\pi)^3\hbar^2}E^2\exp\left[-\frac{\pi(2m^*\varepsilon_g^3)^{1/2}/4q\hbar}{E}\right]
+\end{equation}
+與TCAD模型方程式（\ref{eq:TCAD-btb-simple-model}）相比較可以得到：
+\begin{equation}
+A=\left(\frac{2m^*}{\varepsilon_g}\right)^{1/2}\frac{q^2}{(2\pi)^3\hbar^2}\quad;\quad P=2\quad;\quad B=\frac{\pi(2m^*\varepsilon_g^3)^{1/2}}{4q\hbar}\label{eq:btb-pamameters}
+\end{equation}
+由此可得各物質之理論參數，見表（\ref{t:btb-parameter}）。其中In$_{0.6}$Ga$_{0.4}$As$_{0.598}$P$_{0.402}$之成分為使能隙約略介於InP與In$_{0.53}$Ga$_{0.47}$As之間，對應波長為$1.1\;\mathrm{\mu m}$之其中一種成分。只要能隙固定，那麼不論成分為何都不影響能帶穿隧模型參數。
+\begin{table}[h]
+\begin{center}
+\caption[能帶穿隧模型參數]{能帶穿隧模型參數（Simple model）} \label{t:btb-parameter}
+\begin{tabular}{lccc}
+
+\hline
+  &  InP  & In$_{0.53}$Ga$_{0.47}$As & In$_{0.6}$Ga$_{0.4}$As$_{0.598}$P$_{0.402}$  \\
+\hline
+$m^*/m_0$	&  $0.08$~\cite{parks1996theoretical}	&	$0.0463$~\cite{parks1996theoretical}	&	$0.052$~\cite{paul1991empirical}\\
+$\varepsilon_g(\mathrm{eV})$ & $1.347$~\cite{pavesi1991temperature} & $0.742$~\cite{paul1991empirical}	&	$1.125$~\cite{benzaquen1994alloy} \\
+$A(\mathrm{cm}^{-1}\mathrm{s}^{-1}\mathrm{V}^{-2})$ & $7.641\times10^{19}$ & $7.827\times10^{19}$ & $6.739\times10^{19}$ \\
+$B(\mathrm{V}/\mathrm{cm})$ & $1.779\times10^7$ & $5.542\times10^6$ & $1.095\times10^7$ \\
+$P$ & $2$ & $2$ & $2$ \\
+\hline
+
+\end{tabular}
+\end{center}
+\end{table}
+\subsection{參數驗證}
+雖然已有表（\ref{t:btb-parameter}）中的能帶穿隧理論參數，但仍需驗證此參數是否正確，因此我們可由載子再生速率以及連續方程式進一步推出電流密度對元件偏壓的關係，依序如方程式（\ref{eq:TCAD-btb-simple-model}）、（\ref{eq:continuity-equation}）與（\ref{eq:btb-post-processing-model}）。由於我們目前僅討論穩態（steady-state）情形，即載子濃度對時間之變化應為零，所以
+\begin{equation}
+\frac{\partial n}{\partial t}=0\quad;\quad\frac{\partial p}{\partial t}=0
+\end{equation}
+此外假設元件物理量皆不隨$y$、$z$座標變化，並且討論$\vec{J}_n$與$\vec{J}_p$皆相同，所以若我們以電洞電流為例，其連續方程式（\ref{eq:continuity-equation}）可進一步改寫為：
+\begin{equation}
+J_p(W)-J_p(0)=q\int_0^W G_\text{net,p}(x)dx\label{eq:delta_J=qGdx}
+\end{equation}
+其中$W$為元件厚度。由於電子電洞流在兩電極上分別為主要電流，因此假設在$x=W$時，$J_p(W)\gg J_n(W)$，$J_p(0)\ll J_n(0)$，並且$J_p(x)+J_n(x)=J(x)$，$J(x)$處處相同，所以可將方程式（\ref{eq:delta_J=qGdx}）改寫為
+\begin{equation}
+J(x)\approx q\int_0^W G_\text{net,p}(x^\prime)dx^\prime\quad;\quad 0<x<W
+\end{equation}
+假設元件以能帶穿隧機制為主，即$G_\text{net,p}\approx G_\text{BTB}$，因此可將上式進一步代入方程式（\ref{eq:TCAD-btb-simple-model}）：
+\begin{equation}
+\begin{aligned}
+J(x)&\approx q\int_0^W G_\text{BTB}(x)dx\\[5pt]
+&=q\int_0^W AE^P\exp\left(-\frac{B}{E}\right)dx\label{eq:btb-current-density-exact}
+\end{aligned}
+\end{equation}
+由於方程式（\ref{eq:btb-current-density-exact}）難以積分，所以通常我們會將此積分式用$\gamma W$等效元件厚度、PN接面最大電場$E_m$以及$E_mW=2V$關係寫為下式，此等效概念如圖（\ref{fig:btb-generation-rate-illustration}）所示。
+\begin{equation}
+J(x)=qA\gamma WE_\text{m}^P\exp\left(-\frac{B}{E_\text{m}}\right)=2qA\gamma VE_m^{P-1}\exp\left(-\frac{B}{E_m}\right)\label{eq:btb-fitting-exact-form}
+\end{equation}
+\begin{figure}
+\centering
+\includegraphics[width=0.6\textwidth]{files/btb-rate-field-profile.png}
+\caption[能帶穿隧再生速率分佈示意圖]{能帶穿隧再生速率分佈示意圖。因為能帶穿隧速率（tunneling generation rate）對電場變化極大，所以能帶穿隧等效厚度$\gamma W$通常遠小於實際厚度$W$。}
+\label{fig:btb-generation-rate-illustration}
+\end{figure}
+將方程式（\ref{eq:btb-fitting-exact-form}）與方程式（\ref{eq:btb-post-processing-model}）比較後，可以得到
+\begin{equation}
+c=2A\gamma\quad;\quad P=2\quad;\quad B=B^\prime
+\end{equation}
+因此倘若元件電流電壓符合方程式（\ref{eq:btb-post-processing-model}）之關係，那麼就可以由係數$c$、$B^\prime$求得可用以代入TCAD中的能帶穿隧模型參數$A$、$B$與$P$。而驗證的方法即為將元件電流電壓作$\log(J/V)-1/E_m$之圖。具體來說，我們可以得到如下關係：
+\begin{equation}\label{eq:btb-fitting-linear-formula}
+\begin{aligned}
+\ln\left(J/V\right)&=-B^\prime x-\ln(x)+\ln\left(cq\right)\quad;\quad x\equiv E_m^{-1}\\[5pt]
+&=-Bx-(P-1)\ln(x)+\ln\left(2Aq\gamma\right)
+\end{aligned}
+\end{equation}
+因此我們可藉上述方法分析Ando的In$_{0.53}$Ga$_{0.47}$As P$^+$-N 陡接面二極體I-V數據~\cite{Ando:1980fn}，如圖（\ref{fig:btb-IV}）所示。在圖（\ref{fig:btb-JV-Emax}）中，根據方程式（\ref{eq:btb-fitting-linear-formula}），我們預期各曲線應有著相同的斜率$B=B^\prime$與截距$\ln\left(cq\right)=\ln\left(2Aq\gamma\right)$，但實際狀況並非如此。根據我們前述理論推導得到的表（\ref{t:btb-parameter}），可以得到In$_{0.53}$Ga$_{0.47}$As的$A$、$B$與$P$，因此代入後可擬合得到$\gamma$，結果如表（\ref{t:btb-ando-fitting-parameter}）所示。
+\begin{table}[h]
+\begin{center}
+\caption[能帶穿隧模型擬合參數]{能帶穿隧模型擬合參數 $\gamma$} \label{t:btb-ando-fitting-parameter}
+\begin{tabular}{lccccc}
+\hline
+  $N$型摻質濃度  & $4\times10^{15}$ & $7\times10^{15}$ & $9\times10^{15}$ & $2\times10^{16}$ & $\gamma_\text{net}$\\
+\hline
+$\gamma$ & $4.06\%$ & $4.22\%$ & $4.29\%$ & $4.68\%$ & $7.95\%$\\
+\hline
+\end{tabular}
+\end{center}
+\end{table}
+圖（\ref{fig:btb-IV}）中實心三角形為Ando論文中的數據，我們藉由WebPlotDigitizer~\cite{rohatgi2011webplotdigitizer}將其擷取出來，接著將這些數據繪製成$\log(J/V)-1/E_m$關係，並作於圖（\ref{fig:btb-JV-Emax}）中。由於各濃度之$\log(J/V)-1/E_m$曲線並非理想直線，所以我們也將所有數據一起擬合方程式（\ref{eq:btb-fitting-exact-form}），得到表（\ref{t:btb-ando-fitting-parameter}）中之$\gamma_\text{net}=7.95\%$。最後再將此$\gamma_\text{net}$代入方程式（\ref{eq:btb-post-processing-model}）計算得到理想能帶穿隧電流，如圖（\ref{fig:btb-IV}）中圓圈所示，同時也將由表（\ref{t:btb-parameter}）求得的參數$A$、$B$、$P$代入TCAD並模擬繪於圖（\ref{fig:btb-IV}）中實線。
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.61\textwidth]{files/Ando-btb-simulation.png}
+\caption[In$_{0.53}$Ga$_{0.47}$As P$^+$N 陡接面二極體之I-V關係]{In$_{0.53}$Ga$_{0.47}$As P$^+$N 陡接面二極體之I-V特性圖~\cite{Ando:1980fn}，線上數字為$N$型摻質濃度。}
+\label{fig:btb-IV}
+\end{figure}
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.6\textwidth]{files/Ando-JV-Emax.png}
+\caption{In$_{0.53}$Ga$_{0.47}$As P$^+$N 陡接面二極體之$J/V-1/E_\text{m}$關係}
+\label{fig:btb-JV-Emax}
+\end{figure}
+最後我們從圖（\ref{fig:btb-IV}）可知，顯然該元件電流並非只有能帶穿隧電流，應該還有其他效應構成其暗電流，然而因為其模擬I-V趨勢與實驗值相去不遠，所以我相信上述能帶穿隧理論模型與其列於表（\ref{t:btb-parameter}）中之參數應有其參考價值。
+\section{SRH復合模型}\label{cs:SRH-recombination}
+半導體中常見的電流產生機制之一就是SRH復合機制（SRH recombination），價帶中的電子經由缺陷於禁帶中產生的能井（trap level），向上躍升至傳導帶中。或是電子由傳導帶釋放能量至缺陷能井中，並又再次回到傳導帶，這些都是可能發生的隨機現象。一般來說，我們以Shockley於1952年提出的模型為模擬基礎~\cite{shockley1952statistics}\cite{sentaurus2016sdevice}，其方程式為如下：
+\begin{equation}\label{eq:srh-recombination-rate}
+R_\text{SRH}=-G_\text{SRH}=\frac{np-n_i^2}{\tau_p(n+n_1)+\tau_n(p+p_1)}
+\end{equation}
+
+然而，上式並沒有考慮到電子在經由缺陷能井躍升至傳導帶的過程中，因電場作用而直接穿隧至其他位置上之傳導帶的可能，如圖（\ref{fig:tat-illustration}）所示。對此，我們選用TCAD中的Hurkx field-enhanced lifetime 模型模擬此缺陷輔助穿隧現象（trap-assisted tunneling）~\cite{hurkx1989modelling}\cite{sentaurus2016sdevice}。
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.3\textwidth]{files/trap-assisted-tunneling-illustration.png}
+\caption[缺陷輔助穿隧機制示意圖(1)]{缺陷輔助穿隧機制示意圖。電子由缺陷能井（$P$）上升至$P^\prime$後，隨即穿隧至旁邊的$P^{\prime\prime}$傳導帶能階上。}
+\label{fig:tat-illustration}
+\end{figure}
+
+可能是因為Hurkx在論文中提及底下段落~\cite{hurkx1989modelling}，使得人們並不確定該使用什麼值作為其模型中的穿隧質量。
 \begin{quote}
-For example, if we are considering the bound states of an impurity centre in an $n$-type semiconductor we may obtain a good description of these states using only wave functions of the conduction band provided the ionization energy $W_I$ is small compared with the forbidden energy gap $\Delta E$. This will be true for the so-called 'shallow' impurity levels given by group V elements in silicon or germanium, but not for the deep-lying impurity levels having energy levels near the cnetre of the conduction band. For the latter the differential equation will be invalid in any case since $V(\mathbf{r})$ is likely to vary too rapidly to enable us to use the approximate method of calculating $V_{jj^\prime}$. In this case, the set of linear algebraic equations must be used and not the wave equation for $F(\mathbf{r})$. In general, the solution of the problem becomes very difficult and has not been carried out in many cases of interest.~\cite{smith1963wave}
+The exact value of $m^*$ to be used is not clear and, moreover, depends on the crystal orientation. Theoretical treatments on Zener tunneling suggest a value between $0.1$ and $0.3$.
 \end{quote}
-\section{參數萃取模擬實驗}
-\subsection{穿隧模型參數之萃取}
-\subsection{縱向摻質濃度之萃取}
-\section{改善模擬收斂性之方法：外接電阻法}
+雖然有提到建議為$0.1$至$0.3$，但他並沒有在文中詳細說明該分析過程。就目前了解，除了Hurkx以外，至少還有兩位學者用不同的方法提出幾乎一樣的載子發射率（emission rate，單位為$\mathrm{s}^{-1}$）。一是由É. N. Korol'使用的格林函數法~\cite{korol1977ionization}，二是由W.W. Anderson提出的類似歐本海默法（Oppenheimer approach）的理論模型~\cite{anderson1982field}。由等效質量近似（Effective-mass approximation）出發的Hurkx與由格林函數出發的Korol'，兩人由形式上看似不同的——由能井穿隧至傳導帶的——穿隧機率，
+\begin{equation}
+\begin{aligned}
+\label{eq:two-emission-rates}
+e_n^\prime&=e_n^\infty \exp\left(-\frac{E_i-E}{kT}\right)\exp\left[-\frac{4}{3}\frac{(2m_n^*)^{1/2}E^{3/2}}{q\hbar F}\right]&\cite{vincent1979electric}\\[5pt]
+e_n^\prime&=e_{n}^{\infty}\exp\left(-\frac{E-E_t}{kT}\right)\frac{Ai^2[\gamma(x-x_E)]}{Ai^2(0)}&\cite{Hurkx:2004wr}
+\end{aligned}
+\end{equation}
+給出了相同的載子發射率~\cite{vincent1979electric}\cite{lui1997new}：
+\begin{equation}
+\frac{e_n}{e_{n0}}=1+\frac{E_c-E_t}{kT}\int_0^1\exp\left(\frac{E_c-E_t}{kT}u-K_nu^{3/2}\right)du\quad;\quad K_n\equiv \frac{4}{3}\frac{\sqrt{2m^*_n(E_c-E_t)^3}}{q\hbar F}
+\end{equation}
+其中，$E_i$與$E_t$皆為能井位置（trap level），但其能量參考點不同，詳見\cite{vincent1979electric}之圖一與\cite{Hurkx:2004wr}之圖二，此外$F$為電場強度，$m^*_n$為電子加速度等效質量。然而，方程式（\ref{eq:two-emission-rates}）則與Anderson結果有著係數的不同，詳見\cite{anderson1982field}中之方程式（29）。就我了解，Korol'推導時採用的近似方式與Hurkx截然不同，所以不同的推導方式，即便有著相同的結果，可能伴隨著不同的有效性。
+
+本文僅試圖由Hurkx角度探討其模型有效性與應用。因此我接下來會以R.A. Smith之解說為範本~\cite{smith1963wavech11}，介紹Hurkx的等效質量理論基礎，推得其穿隧質量意義即加速度等效質量的結論。接著再進一步試著推導Hurkx模型，了解Hurkx沒有在相關文獻中提及的推導過程~\cite{hurkx1989modelling}\cite{hurkx1992new}\cite{Hurkx:1998wn}\cite{Hurkx:2004wr}，以了解其模型之有效性，分析可能的誤差來源。
+\subsection{等效質量近似}\label{cs:EMA}
+在古典物理中，質量為$m_e$的自由電子（free electron）滿足基本的牛頓力學，
+\begin{equation}
+m_e\frac{d\mathbf{v}}{dt}=-\nabla V(\mathbf{r})\\[5pt]
+\end{equation}
+而在量子力學中，則是可以直接將其改寫為薛丁格方程式，
+\begin{equation}
+\left[-\frac{\hbar^2\nabla^2}{2m_e}+V(\mathbf{r})\right]\psi=E\psi
+\end{equation}
+或是更廣義的哈密頓方程式（Hamiltonian equation），
+\begin{equation}
+H(\mathbf{p},\mathbf{r})\psi=H(-i\hbar\nabla,\mathbf{r})\psi=E\psi
+\end{equation}
+倘若電子在具有週期性晶格位能$V_\text{lattice}$的半導體中，並且該半導體還被施加外界電壓$V_\text{ext}$，那麼根據准古典近似（quasi-classical approximation）~\cite{smith1963wavech5}，粒子也能夠有其對應的准古典方程式：
+\begin{equation}
+m^*\frac{d\mathbf{v}}{dt}=\hbar\frac{d\mathbf{k}}{dt}=-q\nabla V_\text{ext}
+\end{equation}
+其中$q$為基本電量，$m^*$為電子之加速度等效質量，$\mathbf{k}$為已考慮週期位能$V_\text{lattice}$的晶格動量（crystal momentum）。然而由於此方程式必須用在電場足夠低的情況下（小於$10^5\left.\mathrm{V}/\mathrm{cm}\right.$），即載子只會在單一能帶上運動的情況，而沒辦法處理可能在能帶之間穿隧的情況~\cite{smith1963wavech5}\cite{bloch1934z}，所以我們需要有能夠簡化下列薛丁格方程式，並且能用以描述穿隧現象的方法。
+\begin{equation}
+\label{eq:complete-schrodinger-equation}
+\left[-\frac{\hbar^2\nabla^2}{2m_e}+V_\text{lattice}(\mathbf{r})+V_\text{ext}(\mathbf{r})\right]\psi=E\psi
+\end{equation}
+\hspace{2em}因此Slater於1949年提出了藉由將瓦尼爾函數（Wannier function）作為波函數基底展開的方法~\cite{slater1949electrons}\cite{smith1963wavech11}。其結果可經推導寫為下式：
+\begin{equation}
+\label{eq:effective-mass-approximation-final-form}
+\left[-\frac{\hbar^2\nabla^2}{2m^*}+V_\text{ext}(\mathbf{r})\right]\phi=E\phi
+\end{equation}
+其中，週期性晶格位能$V_\text{lattice}$之效應已併入加速度等效質量$m^*$中，並且$\phi$並不同於波函數$\psi$，前者為後者之瓦尼爾函數基底之展開函數。由於此結果可將繁雜的薛丁格方程式（\ref{eq:complete-schrodinger-equation}）簡化為僅需要外加電場與等效質量的形式，所以此方法名為等效質量近似（Effecitve-mass approximation）。此近似是基於布拉赫函數（Bloch function）為一種週期性波動函數的特性，讓我們可對其作傅立葉轉換，得到在各單位晶胞（unit cell）中有值，而在其外就快速衰退的瓦尼爾函數，如底下方程式（\ref{eq:fourier-transform-wannier-function}）與圖（\ref{fig:tbloch-wannier-function}）所示。
+\begin{equation}
+\label{eq:fourier-transform-wannier-function}
+w_n(\mathbf{r}-\mathbf{R}_j)=N^{-1/2}\sum_{\mathbf{k}}e^{-i\mathbf{k}\cdot\mathbf{R}_j}b_{n\mathbf{k}}(\mathbf{r})
+\end{equation}
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.55\textwidth]{files/bloch-wannier-function.png}
+\caption[布拉赫與瓦尼爾函數空間分佈示意圖]{布拉赫與瓦尼爾函數空間分佈示意圖~\cite{marzari2012maximally}，其中，$\Psi_{k_n}(x)=u_{nk}(x)e^{ikx}$，$w_n(x)=N^{-1/2}\sum_k e^{-ikR_j}\Psi_{k_n}(x)$。}
+\label{fig:tbloch-wannier-function}
+\end{figure}
+其中，$N$為單位晶胞總數，$n$為能帶編號，$\mathbf{k}$為晶格動量，$\mathbf{R}_j$為第$j$個單位晶胞（unit cell）之位置向量。因為布拉赫函數為標準正交基底（orthonormal basis），所以瓦尼爾函數也同樣為標準正交基底。
+\begin{equation}
+\label{eq:wannier-orthonormal-basis}
+\int_V w_{n^\prime}^*(\mathbf{r}-\mathbf{R}_{j^\prime})w_n(\mathbf{r}-\mathbf{R}_j)d\mathbf{r}=\delta_{nn^\prime}\delta_{jj^\prime}
+\end{equation}
+因此，我們能夠將任意波函數$\psi(\mathbf{r})$以瓦尼爾函數$w_n(\mathbf{r}-\mathbf{R}_j)$展開，得到
+\begin{equation}
+\label{eq:psi-wannier-expansion}
+\psi(\mathbf{r})=\left(\frac{V}{N}\right)^{1/2}\sum_n\sum_j\phi_n(\mathbf{R}_j)w_n(\mathbf{r}-\mathbf{R}_j)
+\end{equation}
+其中，$(V/N)^{1/2}$為用以正規化（normalization）之係數，並且$\phi_n(\mathbf{R}_j)$為各基底之展開係數。在此我們進一步假設$\phi_n(\mathbf{R}_j)$為一個對$\mathbf{R}_j$而言變化緩慢的函數，那麼因為瓦尼爾函數$w_n(\mathbf{r}-\mathbf{R}_j)$在第$j$個晶胞外就會迅速遞減，所以我們能夠將$\phi_n(\mathbf{R}_j)$視為一種振幅函數（amplitude function），能藉此呈現出波函數$\psi(\mathbf{r})$在第$j$個單位晶胞內之強度。在這種$\phi(\mathbf{R}_j)$具有對於$\mathbf{R}_j$緩慢變化特性的情況下，也有人將其稱為包絡函數（envelope function）~\cite{hurkx1989modelling}。我們可藉由考慮一個遠比晶體體積$V$還要小，但卻大到足以包含數個單位晶胞的體積$\Delta V$，來更進一步了解此振幅函數$\phi_n(\mathbf{R}_j)$的特性。在這$\Delta V$範圍中，其電子出現機率為
+\begin{equation}
+\Delta P=\int_{\Delta V}\vert\psi\vert^2d\mathbf{r}
+\end{equation}
+\hspace{2em}我們進一步將$\psi(\mathbf{r})$代入其瓦尼爾函數展開式（\ref{eq:psi-wannier-expansion}），並且假設僅有單一特定能帶$m$有顯著貢獻（single-band approximation），即對於所有$n\neq m$，$\vert\phi_m\vert\gg\vert\phi_n\vert$，因此將能帶下標$n$省略，我們得到
+\begin{equation}
+\Delta P=\frac{V}{N}\int_{\Delta V}\sum_{jj^\prime}\phi^*(\mathbf{R}_{j^\prime})\phi(\mathbf{R}_j)w^*(\mathbf{r}-\mathbf{R}_{j^\prime})w(\mathbf{r}-\mathbf{R}_j)d\mathbf{r}
+\end{equation}
+由於我們考慮的$\Delta V$足夠小，所以基於$\phi(\mathbf{R}_j)$之緩慢變化特性，我們可將位於$\Delta V$內的$\phi^*(\mathbf{R}_{j^\prime})\phi(\mathbf{R}_j)$進一步簡化為$\vert\phi(\mathbf{R}_j)\vert^2$，因此可得
+\begin{equation}
+\label{eq:wannier-basis-application}
+\Delta P\approx\frac{V}{N}\left\vert\phi(\mathbf{R}_j)\right\vert^2\int_{\Delta V}\sum_{jj^\prime}w^*(\mathbf{r}-\mathbf{R}_{j^\prime})w(\mathbf{r}-\mathbf{R}_j)d\mathbf{r}
+\end{equation}
+基於瓦尼爾函數的快速遞減性質與標準正交性質（\ref{eq:wannier-orthonormal-basis}），可以觀察到方程式（\ref{eq:wannier-basis-application}）中的積分式仍約略為$1$，並且僅將$\Delta V$內部之單位晶胞加總起來，所以其積分總和式即為$N\Delta V/V$，因此可以得到
+\begin{equation}
+\Delta P\approx\frac{V}{N}\left\vert\phi(\mathbf{R}_j)\right\vert^2\left(\frac{N\Delta V}{V}\right)=\left\vert\phi(\mathbf{R}_j)\right\vert^2\Delta V
+\label{eq:meaning-of-phiRj}
+\end{equation}
+因此，如果我們將常數$\phi(\mathbf{R}_j)$改寫為對空間$\mathbf{r}$之連續函數$\phi(\mathbf{r})$，那麼方程式（\ref{eq:meaning-of-phiRj}）即能改寫為相當於量子力學中的基礎公設——波恩定則（Born rule）：
+\begin{equation}
+\label{eq:wannier-born-rule}
+\int_V\left\vert\phi(\mathbf{r})\right\vert^2d\mathbf{r}=1
+\end{equation}
+也就是說，等效質量近似方程式（\ref{eq:effective-mass-approximation-final-form}）中之$\phi$雖然並不是波函數$\psi$，但是卻具有著波函數$\psi$的機率詮釋意義。在了解$\phi(\mathbf{r})$意義後，我們可開始化簡薛丁格波動方程式（\ref{eq:complete-schrodinger-equation}）。首先將動能項與週期位能項併入$H_0$中，用以表示理想的週期晶格哈密頓算符（Perfect crystal Hamiltonian），因此可將薛丁格波動方程式（\ref{eq:complete-schrodinger-equation}）改寫為
+\begin{equation}
+\label{eq:wannier-perturbation-form}
+\left[H_0+V_\text{ext}(\mathbf{r})\right]\psi=E\psi
+\end{equation}
+接著將$\psi$之瓦尼爾函數展開式（\ref{eq:psi-wannier-expansion}）代入，將疊加指標$j$改為$j^\prime$，並採用單能帶近似（single-band approximation），忽略能帶下標$n$，再於左右式同乘$w^*(\mathbf{r}-\mathbf{R}_j)$積分，藉由瓦尼爾函數之標準正交基底特性（\ref{eq:wannier-orthonormal-basis}）求得各展開係數$\phi(\mathbf{R}_j)$之迭代關係式，總共有$N$條關係式，結果如下。
+\begin{equation}
+\label{eq:wannier-plug-in-schrodinger-eq}
+\sum_{j^\prime}(H_0)_{jj^\prime}\phi(\mathbf{R}_{j^\prime})+\sum_{j^\prime}V_{jj^\prime}\phi(\mathbf{R}_{j^\prime})=E\phi(\mathbf{R}_j)
+\end{equation}
+其中，
+\begin{equation}
+\begin{aligned}
+(H_0)_{jj^\prime}&\equiv\int w^*(\mathbf{r}-\mathbf{R}_{j})H_0w(\mathbf{r}-\mathbf{R}_{j^\prime})d\mathbf{r}\\[5pt]
+V_{jj^\prime}&\equiv\int w^*(\mathbf{r}-\mathbf{R}_j)V_\text{ext}(\mathbf{r})w(\mathbf{r}-\mathbf{R}_{j^\prime})d\mathbf{r}
+\end{aligned}
+\end{equation}
+由於$(H_0)_{jj^\prime}$之積分範圍為整個晶體，所以可將其中的$w(\mathbf{r}-\mathbf{R}_j)$平移改寫為
+\begin{equation}
+(H_0)_{jj^\prime}=\int w^*(\mathbf{r})H_0w(\mathbf{r}-\mathbf{R}_{j^\prime}+\mathbf{R}_j)d\mathbf{r}
+\end{equation}
+由此可見$(H_0)_{jj^\prime}$為$\mathbf{R}-\mathbf{R}_j$之函數，
+\begin{equation}
+(H_0)_{jj^\prime}=h_0(\mathbf{R}_j-\mathbf{R}_{j^\prime})
+\end{equation}
+此外，由於$w(\mathbf{r}-\mathbf{R}_j)$為在第$j$個單位晶胞外快速衰退之函數，所以$V_{jj^\prime}$只有在$j\approx j^\prime$才有值。因此倘若我們進一步假設$V(\mathbf{r})$為相對$\mathbf{R}_j$緩慢變化的函數，那麼可以得到$V_{jj^\prime}\approx V_\text{ext}(\mathbf{R}_j)\delta_{jj^\prime}$，因此可將方程式（\ref{eq:wannier-plug-in-schrodinger-eq}）改寫為
+\begin{equation}
+\label{eq:phi-wannier-equation}
+\sum_{j^\prime}h_0(\mathbf{R}_j-\mathbf{R}_{j^\prime})\phi(\mathbf{R}_{j^\prime})+V_\text{ext}(\mathbf{R}_j)\phi(\mathbf{R}_j)=E\phi(\mathbf{R}_j)
+\end{equation}
+\hspace{2em}原則上，只要我們解出方程式（\ref{eq:phi-wannier-equation}）中的$\phi(\mathbf{R}_j)$，那就能進一步計算穿隧機率。其關鍵在於其理想的能帶色散關係$E(\mathbf{k})$，根據方程式（\ref{eq:wannier-perturbation-form}），可以得到在尚未施加外界電場時之能量關係：
+\begin{equation}
+\label{eq:EMA-energy-dispersion}
+H_0b_\mathbf{k}(\mathbf{r})=E(\mathbf{k})b_\mathbf{k}(\mathbf{r})\quad\to\quad E(\mathbf{k})=\int b_\mathbf{k}^*(\mathbf{r})H_0b_\mathbf{k}(\mathbf{r})d\mathbf{r}
+\end{equation}
+因此，我們可將瓦尼爾函數（\ref{eq:fourier-transform-wannier-function}）做傅立葉轉換，將布拉赫函數$b_\mathbf{k}(\mathbf{r})$改為由瓦尼爾函數為基底展開，
+\begin{equation}
+b_{n\mathbf{k}}(\mathbf{r})=N^{-1/2}\sum_je^{i\mathbf{k}\cdot\mathbf{R}_j}w_n(\mathbf{r}-\mathbf{R}_j)
+\end{equation}
+接著代入方程式（\ref{eq:EMA-energy-dispersion}）中，可以得到
+\begin{equation}
+\label{eq:EMA-energy-translation-operator}
+E(\mathbf{k})=N^{-1}\sum_{jj^\prime}h_0(\mathbf{R}_j-\mathbf{R}_{j^\prime})e^{-i(\mathbf{R}_j-\mathbf{R}_{j^\prime})\cdot\mathbf{k}}=\sum_{j^\prime}h_0(\mathbf{R}_j)e^{-i\mathbf{R}_j\cdot\mathbf{k}}
+\end{equation}
+注意到倘若將動量算符$\mathbf{p}=\hbar\mathbf{k}=-i\hbar\nabla$代入，即$\mathbf{k}=-i\nabla$，那麼$e^{-i\mathbf{R}_j\cdot\mathbf{k}}=e^{-\mathbf{R}_{j^\prime}\cdot\nabla}$則為量子力學中的平移算符（translation operator），我們可以用多變數泰勒展開來理解其效果：
+\begin{equation}
+\label{eq:EMA-translation-operator}
+\begin{aligned}
+\phi(\mathbf{r}-\mathbf{R}_{j^\prime})&=\phi(\mathbf{r})-\mathbf{R}_{j^\prime}\cdot\nabla\phi(\mathbf{r})+\frac{(\mathbf{R}_{j^\prime}\cdot\nabla)[\mathbf{R}_{j^\prime}\cdot\nabla\phi(\mathbf{r})]}{2}-\cdots\\[5pt]
+&=\left[1-\left(\mathbf{R}_{j^\prime}\cdot\nabla\right)+\frac{1}{2}\left(\mathbf{R}_{j^\prime}\cdot\nabla\right)^2-+\cdots\right]\phi(r)\\[5pt]
+&=e^{-\mathbf{R}_{j^\prime}\cdot\nabla}\phi(\mathbf{r})
+\end{aligned}
+\end{equation}
+為了利用上述$\phi(\mathbf{r}-\mathbf{R}_{j^\prime})=e^{-\mathbf{R}_{j^\prime}\cdot\nabla}\phi(\mathbf{r})$之關係，我們將方程式（\ref{eq:phi-wannier-equation}）中的第一項平移其指標$j$，可改寫為
+\begin{equation}
+\sum_{j^\prime}h_0(\mathbf{R}_{j^\prime})\phi(\mathbf{R}_j-\mathbf{R}_{j^\prime})+V_\text{ext}(\mathbf{R}_j)\phi(\mathbf{R}_j)=E\phi(\mathbf{R}_j)
+\end{equation}
+再將$\phi(\mathbf{R}_j)$改寫為對空間位置向量$\mathbf{r}$之連續函數$\phi(\mathbf{r})$，
+\begin{equation}
+\sum_{j^\prime}h_0(\mathbf{R}_{j^\prime})\phi(\mathbf{r}-\mathbf{R}_{j^\prime})+V_\text{ext}(\mathbf{r})\phi(\mathbf{r})=E\phi(\mathbf{r})
+\end{equation}
+最後，我們藉由方程式（\ref{eq:EMA-energy-translation-operator}）與（\ref{eq:EMA-translation-operator}），可以得到
+\begin{equation}
+\label{eq:EMA-final-form}
+\left[E(-i\nabla)+V_\text{ext}(\mathbf{r})\right]\phi(\mathbf{r})=E\phi(\mathbf{r})
+\end{equation}
+進一步而言，倘若該晶體在尚未施加電場時之$E(\mathbf{k})$關係滿足拋物球狀近似（parabolic and spherical approximation），
+\begin{equation}
+E(\mathbf{k})\approx\frac{\hbar^2k^2}{2m^*}\quad\to\quad E(-i\nabla)\approx-\frac{\hbar^2\nabla^2}{2m^*}
+\end{equation}
+那麼就可將方程式（\ref{eq:EMA-final-form}）改寫為
+\begin{equation}
+\label{eq:EMA-Hurkx-initial-step-form}
+\left[-\frac{\hbar^2\nabla^2}{2m^*}+V_\text{ext}(\mathbf{r})\right]\phi(\mathbf{r})=E\phi(\mathbf{r})
+\end{equation}
+\hspace{2em}綜上所述，基於下述假設，我們能夠將薛丁格方程式$[H_0+V_\text{ext}(\mathbf{r})]\psi=E\psi$改寫為方程式（\ref{eq:EMA-Hurkx-initial-step-form}），此即為等效質量近似。
+\begin{enumerate}
+	\item 對於任何$n\neq m$，$\left\vert\phi_m(\mathbf{R_j})\right\vert\gg\left\vert\phi_n(\mathbf{R}_{j^\prime})\right\vert$，即單能帶假設。
+	\item $V_{jj^\prime}\approx V_\text{ext}(\mathbf{R}_j)\delta_{jj^\prime}$，即電場足夠小之假設。
+	\item $E(\mathbf{k})\approx\hbar^2k^2/2m^*$，即拋物球狀能帶假設。
+\end{enumerate}
+\subsection{Hurkx缺陷輔助穿隧模型}\label{cs:Hurkx-TAT-model}
+Hurkx假設晶體受到向$x$軸正向之均勻電場~\cite{hurkx1989modelling}，即沒有任何摻雜的情況，$V_\text{ext}(x)=qFx$，如圖（\ref{fig:TAT-wave-function}）所示，而非均勻摻雜的$V_\text{ext}(x)\sim x^2$，所以其等效質量方程式為
+\begin{equation}
+\label{eq:Hurkx-governing-equation}
+\left(-\frac{\hbar^2\nabla^2}{2m^*}+qFx\right)\phi(x)=E\phi(x)
+\end{equation}
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.6\textwidth]{files/TAT-wave-function.png}
+\caption[缺陷輔助穿隧機制示意圖(2)]{缺陷輔助機制示意圖。電子向右穿隧之振幅函數為$\phi_E(x)$，其意義如方程式（\ref{eq:wannier-born-rule}）所示。$x_E$為其對應之傳導帶能階位置，$\delta$為缺陷能井$E_T$之對應傳導帶位置。}
+\label{fig:TAT-wave-function}
+\end{figure}
+接著做變數轉換，令$u=\gamma(x-x_E)$，其中$\gamma\equiv \left(2m^*qF\hbar^{-2}\right)^{1/3}$，以及$x_E=E/qF$，因而將方程式（\ref{eq:Hurkx-governing-equation}）改寫為
+\begin{equation}
+\frac{d^2\phi}{du^2}-u\phi=0
+\end{equation}
+此方程式有著艾里函數（Airy function）的微分方程解，
+\begin{equation}
+\label{eq:Airy-solution}
+\phi(x)=C_1Ai\left[\gamma(x-x_E)\right]+C_2Bi\left[\gamma(x-x_E)\right]
+\end{equation}
+又因為$\lim_{x\to\infty}Bi(x)=\infty$，並由圖（\ref{fig:TAT-wave-function}）可知$\lim_{x\to\infty}\phi(x)=0$，由此可得方程式（\ref{eq:Airy-solution}）之$C_2=0$，所以定義其解為
+\begin{equation}
+\label{eq:phi_E_solution}
+\phi_E(x)\equiv C_1Ai\left[\gamma(x-x_E)\right]
+\end{equation}
+\subsubsection{SRH 廣義表達式}
+由於Hurkx是基於SRH廣義表達式推出其模型，所以需要在此說明何謂廣義表達式。根據Shockley當年提出的復合模型~\cite{shockley1952statistics}，如圖（\ref{fig:four-srh-process}）所示，假若能井濃度為$N_T$，於能井上佔據電子的機率為$f_T$，即
+\begin{equation}
+f_T=\left[1+\exp\left(\frac{E_T-E_F}{kT}\right)\right]^{-1}
+\end{equation}
+並且載子發射率為$e$，捕捉率為$c$，那麼參與圖（\ref{fig:four-srh-process}）中(a)、(b)過程之電子濃度時變率為
+\begin{equation}
+\label{eq:dndt-srh}
+\frac{dn}{dt}=-c_nnN_T(1-f_T)+e_nN_Tf_T
+\end{equation}
+同樣地，參與圖（\ref{fig:four-srh-process}）中(c)、(d)過程之電洞濃度時變率為
+\begin{equation}
+\label{eq:dpdt-srh}
+\frac{dp}{dt}=-c_ppN_Tf_T+e_nN_T(1-f_T)
+\end{equation}
+因此，位於缺陷能井上之電子數$N_T^-$之時變率為
+\begin{equation}
+\frac{dN_T^-}{dt}=-\frac{dn}{dt}+\frac{dp}{dt}
+\end{equation}
+倘若我們僅假設位於缺陷能井上之電子數不變，使得$dn/dt=dp/dt$，那麼我們可以得出底下之SRH廣義表達式~\cite{Hurkx:2004wr}\cite{milnes1973deep}。
+\begin{equation}
+\label{eq:srh-general-expression}
+R_\text{SRH}\equiv-\frac{dn}{dt}=-\frac{dp}{dt}=N_T\frac{c_pc_npn-e_ne_p}{c_nn+c_pp+e_n+e_p}
+\end{equation}
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.45\textwidth]{files/four-srh-process.png}
+\caption[SRH復合過程]{SRH復合過程。由單能階之缺陷中心產生之電子電洞復合過程。}
+\label{fig:four-srh-process}
+\end{figure}
+在推得廣義表達式後，Hurkx進一步論證，在熱平衡，即$dn/dt=dp/dt=0$，並且施加電壓時，可推得其載子發射率與等效載子濃度會放大為
+\begin{equation}
+\label{eq:Hurkx-TAT-field-enhanced-factor-Gamma}
+\begin{aligned}
+\frac{e_n}{e_{n0}}&=\frac{n_t}{n}=1+\Gamma_n\\[5pt]
+\frac{e_p}{e_{p0}}&=\frac{p_t}{p}=1+\Gamma_p
+\end{aligned}
+\end{equation}
+其中，$e_{n0}(e_{p0})$、$n(p)$為沒有外加電場時之電子（電洞）發射率與電子（電洞）濃度，至於$\Gamma$則為場效倍增因子（field-enhanced factor），基於缺陷輔助穿隧效應而產生的放大因子。最後可藉方程式（\ref{eq:srh-general-expression}）與（\ref{eq:Hurkx-TAT-field-enhanced-factor-Gamma}）推出
+\begin{equation}
+\label{eq:final-Hurkx-model}
+R_\text{SRH}=\frac{np-n_i^2}{\dfrac{\tau_{p0}}{1+\Gamma_p}(n+n_1)+\dfrac{\tau_{n0}}{1+\Gamma_n}(p+p_1)}
+\end{equation}
+接下來會依序推導考慮缺陷輔助穿隧效應時的等效載子濃度與發射率，再整理得出方程式（\ref{eq:final-Hurkx-model}）。
+\subsubsection{等效載子濃度}
+由圖（\ref{fig:TAT-wave-function}）與方程式（\ref{eq:wannier-born-rule}）、（\ref{eq:phi_E_solution}）可得，電子由$x_E$穿隧至$x>x_E$之機率為
+\begin{equation}
+\label{eq:trap-assisted-tunneling-probability}
+T_E(x)\equiv\frac{\left\vert\phi_E(x)\right\vert^2}{\left\vert\phi_E(x_E)\right\vert^2}=\frac{Ai^2\left[\gamma(x-x_E)\right]}{Ai^2(0)}
+\end{equation}
+因此，計算位於$x$之電子濃度時，除了考慮傳導帶上各個$E>E_c(x)$之能量貢獻時，我們也得考慮藉由鄰近傳導帶（$\delta<x_E<x$）穿隧至$x$之電子，因此電子濃度為
+\begin{equation}
+\label{eq:hurkx1989-equation}
+\begin{aligned}
+n_t&=\int_{E_T(x)}^{E_c(x)}g(E)f(E)T_E(x)dE+\int_{E_c(x)}^\infty g(E)f(E)dE\\[5pt]
+&=\int_{E_T(x)}^{E_c(x)}\left(-\frac{dn}{dx}\right)_{x=x_E}T_E(x)dE+n(x)\\[5pt]
+&=n(x)+\int_\delta^x\left(-\frac{dn}{dx}\right)_{x=x_E}\frac{Ai^2\left[\gamma(x-x_E)\right]}{Ai^2(0)}dx_E
+\end{aligned}
+\end{equation}
+其中，$n_t$為考慮缺陷輔助穿隧效應（Trap-assisted tunneling，TAT）時的等效電子濃度，而$n$則為沒有考慮TAT時之電子濃度，$g(E)$為能階密度函數（density of states），$f(E)$為費米—狄拉克分佈函數，$\delta$為能夠穿隧至$E_T(x)$之最小$x$座標，因為在$x<\delta$之傳導帶能階都比$E_T(x)$還要小，而無法穿隧至$E_T(x)$。接著即處理$\left(-dn/dx\right)_{x=x_E}$：
+\begin{equation}
+\label{eq:-dndx}
+\begin{aligned}
+\left(-\frac{dn}{dx}\right)_{x=x_E}&=-\frac{d}{dx}\left[n_i\exp\left(\frac{E_{Fn}-E_i}{kT}\right)\right]_{x=x_E}\\[5pt]
+&=n_i\exp\left[\frac{E_{Fn}-E_i(x_E)}{kT}\right]\frac{qF}{kT}\\[5pt]
+&=n(x)\frac{qF}{kT}\exp\left[\frac{E_i(x)-E_i(x_E)}{kT}\right]
+\end{aligned}
+\end{equation}
+因此，將方程式（\ref{eq:-dndx}）代入（\ref{eq:hurkx1989-equation}）中，可以得到
+\begin{equation}
+\begin{aligned}
+n_t(x)&=n(x)\left\{1+\frac{qF}{kT}\int_\delta^x\exp\left[\frac{E_i(x)-E_i(x_E)}{kT}\right]\frac{Ai^2\left[\gamma(x-x_E)\right]}{Ai^2(0)}dx_E\right\}\\[5pt]
+&=n(x)\left\{1+\frac{1}{kT}\int_{E_T(x)}^{E_c(x)}\exp\left(\frac{E_c-E^\prime}{kT}\right)\frac{Ai^2\left[\gamma(x-x_E)\right]}{Ai^2(0)}dE^\prime\right\}
+\end{aligned}
+\end{equation}
+最後，為了與待會推導的發射率比較，令$E=Ec-E^\prime$，其中$E_c=qFx$，
+\begin{equation}
+\label{eq:nt-n-relationship}
+n_t(x)=n(x)\left\{1+\frac{1}{kT}\int_0^{E_c-E_T}\exp\left(\frac{E}{kT}\right)\frac{Ai^2(2m_n^*\gamma^{-2}\hbar^{-2}E)}{Ai^2(0)}dE\right\}
+\end{equation}
+\hspace{2em}電洞濃度也可由類似方法推得，值得注意的是方程式（\ref{eq:trap-assisted-tunneling-probability}）之穿隧機率，若將其中$m^*$代入電子加速度等效質量$m_n^*$，則此為電子TAT機率，若代入電洞等效質量$m_p^*$，則為電洞穿隧機率。在此不贅述電洞之詳細推導，其結果如下。
+\begin{equation}
+\begin{aligned}
+p_t(x)&=\int_{-\infty}^{E_v(x)}g(E)\left[1-f(E)\right]dE+\int_{E_v(x)}^{E_T(x)}g(E)\left[1-f(E)\right]T_E(x)dE\\[5pt]
+&=p(x)\left\{1+\frac{1}{kT}\int_0^{E_T-E_v}\exp\left(\frac{E}{kT}\right)\frac{Ai^2(2m_p^*\gamma^{-2}\hbar^{-2}E)}{Ai^2(0)}dE\right\}
+\end{aligned}
+\end{equation}
+\subsubsection{等效載子發射率}
+根據Vincent~\cite{vincent1979electric}與圖（\ref{fig:tat-illustration}），電子發射時需先從能井（$P$）經由熱致發射到$P^\prime$（$PP^\prime$），再經由TAT穿隧至隔壁的傳導帶能階$P^\prime$（$P^\prime P^{\prime\prime}$），因此藉由TAT發射至傳導帶的電子發射率，為上述兩過程之機率乘積，最後再加上直接由缺陷能井$E_T(x)$熱致發射到傳導帶$E_c(x)$的正常熱發射率，即為電子總發射率：
+\begin{equation}
+\begin{aligned}
+e_n&=\text{(thermal emission)}+\text{(trap-assisted tunneling)}\\[5pt]
+&=e_n^\infty\exp\left(-\frac{E_c-E_T}{kT}\right)+\int_{E_T}^{E_c}e_n^\infty\exp\left(-\frac{E^\prime-E_T}{kT}\right)T_E(x)d\left(\frac{E^\prime}{kT}\right)
+\end{aligned}
+\end{equation}
+其中，據我推測，Hurkx將上式之$T_E(x)$視為方程式（\ref{eq:trap-assisted-tunneling-probability}），然而這並不符合我的物理直覺；我覺得位於傳導帶上的波函數分佈$\phi_E(x)$，以及位於能井上的波函數分佈$\psi_{T}(x)$應該是不同的，而非對稱的。然而似乎只有這樣才能推出$n_t/n=e_n/e_{n0}$的Hurkx結論。因此，現階段我仍將$T_E(x)$視為方程式（\ref{eq:trap-assisted-tunneling-probability}），繼續推導下去：
+\begin{equation}
+e_n=e_n^\infty\exp\left(-\frac{E_c-E_T}{kT}\right)+\int_{E_T}^{E_c}e_n^\infty\exp\left(-\frac{E^\prime-E_T}{kT}\right)\frac{Ai^2\left[\gamma(x-x_E)\right]}{Ai^2(0)}d\left(\frac{E^\prime}{kT}\right)
+\end{equation}
+接著令$E=qFx-E^\prime=E_c-E^\prime$，可以得到
+\begin{equation}
+\begin{aligned}
+e_n&=e_n^\infty\exp\left(-\frac{E_c-E_T}{kT}\right)\\[5pt]
+&+e_n^\infty\left(-\frac{E_c-E_T}{kT}\right)\frac{1}{kT}\int_0^{E_c-E_T}\exp\left(\frac{E}{kT}\right)\frac{Ai^2(2m_n^*\gamma^{-2}\hbar^{-2}E)}{Ai^2(0)}dE\\[5pt]
+&=e_n^\infty\exp\left(-\frac{E_c-E_T}{kT}\right)\left[1+\frac{1}{kT}\int_0^{E_c-E_T}\exp\left(\frac{E}{kT}\right)\frac{Ai^2(2m_n^*\gamma^{-2}\hbar^{-2}E)}{Ai^2(0)}dE\right]
+\end{aligned}
+\end{equation}
+我們定義沒有TAT效應之發射率$e_{n0}$定義為：
+\begin{equation}
+e_{n0}\equiv e_n^\infty\exp\left(-\frac{E_c-E_T}{kT}\right)
+\end{equation}
+因此可得與Hurkx~\cite{Hurkx:2004wr}相同的方程式：
+\begin{equation}
+e_n=e_{n0}\left[1+\frac{1}{kT}\int_0^{E_c-E_T}\exp\left(\frac{E}{kT}\right)\frac{Ai^2(2m_n^*\gamma^{-2}\hbar^{-2}E)}{Ai^2(0)}dE\right]
+\end{equation}
+我們與電子濃度$n_t$——即方程式（\ref{eq:nt-n-relationship}）——相比較可得到電子之濃度與發射率都以相同倍率放大，因此我們定義電子之缺陷輔助穿隧倍增因子$\Gamma_n$為
+\begin{equation}
+\label{eq:gamma_n_TAT}
+\Gamma_n\equiv\frac{n_t-n}{n}=\frac{e_n-e_{n0}}{e_{n0}}=\frac{1}{kT}\int_0^{E_c-E_T}\exp\left(\frac{E}{kT}\right)\frac{Ai^2(2m_n^*\gamma^{-2}\hbar^{-2}E)}{Ai^2(0)}dE
+\end{equation}
+同樣地，電洞之缺陷輔助穿隧倍增因子$\Gamma_p$為
+\begin{equation}
+\label{eq:gamma_p_TAT}
+\Gamma_p\equiv\frac{p_t-p}{p}=\frac{e_p-e_{p0}}{e_{p0}}=\frac{1}{kT}\int_0^{E_T-E_v}\exp\left(\frac{E}{kT}\right)\frac{Ai^2(2m_p^*\gamma^{-2}\hbar^{-2}E)}{Ai^2(0)}dE
+\end{equation}
+\subsubsection{缺陷輔助穿隧模型}
+在得到載子濃度與發射率之放大關係後，我們可將其代入SRH廣義表達式（\ref{eq:srh-general-expression}）中，
+\begin{equation}
+\begin{aligned}
+R_\text{SRH}&=N_T\frac{c_pc_nn_tp_t-e_ne_p}{c_nn_t+c_pp_t+e_n+e_p}\\[5pt]
+&=N_T\frac{(1+\Gamma_n)(1+\Gamma_p)c_pc_nnp-(1+\Gamma_n)(1+\Gamma_p)e_{n0}e_{p0}}{(1+\Gamma_n)c_nn+(1+\Gamma_p)c_pp+(1+\Gamma_n)e_{n0}+(1+\Gamma_p)e_{p0}}\\[5pt]
+&=\frac{np-(e_{n0}/c_n)(e_{p0}/c_p)}{\dfrac{1}{N_Tc_p(1+\Gamma_p)}\left(n+\dfrac{e_{n0}}{c_n}\right)+\dfrac{1}{N_Tc_n(1+\Gamma_n)}\left(p+\dfrac{e_{p0}}{c_p}\right)}
+\end{aligned}
+\end{equation}
+考慮穩態條件，$dn/dt=dp/dt=0$，因此根據方程式（\ref{eq:dndt-srh}）、（\ref{eq:dpdt-srh}）可得
+\begin{equation}
+\begin{aligned}
+\frac{e_{n0}}{c_n}&=n_i\exp\left(\frac{E_T-E_i}{kT}\right)\equiv n_1\\[5pt]
+\frac{e_{p0}}{c_p}&=n_i\exp\left(\frac{E_i-E_T}{kT}\right)\equiv p_1
+\end{aligned}
+\end{equation}
+並且令$\tau_{p0}=(N_Tc_p)^{-1}$、$\tau_{n0}=(N_Tc_n)^{-1}$，代入後即得到考慮缺陷輔助穿隧效應的SRH復合模型
+\begin{equation}
+\label{eq:TAT-SRH-recombination-model}
+R_\text{SRH}=\frac{np-n_i^2}{\dfrac{\tau_{p0}}{1+\Gamma_p}\left(n+n_1\right)+\dfrac{\tau_{n0}}{1+\Gamma_n}\left(p+p_1\right)}
+\end{equation}
+\subsubsection{穿隧倍增因子}
+Hurkx提到可利用艾里函數的漸進行為（asymptotic behavior）進一步將倍增因子$\Gamma$近似為便於數值積分的形式~\cite{Hurkx:2004wr}
+\begin{equation}
+Ai(y)\sim\exp\left(-\frac{2}{3}y^{3/2}\right)
+\end{equation}
+代入倍增因子方程式（\ref{eq:gamma_n_TAT}）、（\ref{eq:gamma_p_TAT}）後可得TCAD中的Hurkx場效倍增因子模型~\cite{sentaurus2016sdevice}
+\begin{equation}
+\Gamma_{n,p}=\frac{\Delta E_{n,p}}{kT}\int_0^1\exp\left(\frac{\Delta E_{n,p}}{kT}u-K_{n,p}u^{3/2}\right)du
+\end{equation}
+其中，$\Delta E_{n,p}$為穿隧能階範圍，並因$E_T$相對能帶平坦區位置而有所不同，
+\begin{equation}
+\begin{aligned}
+\Delta E_{n}&\equiv E_c(x)-E_{cn},&E_T(x)\leq E_{cn}\\[5pt]
+&=E_c(x)-E_T(x),&E_T(x)>E_{cn}\\[5pt]
+\Delta E_{p}&\equiv E_{vp}-E_v(x),&E_T(x)>E_{vp}\\[5pt]
+&=E_T(x)-E_v(x),&E_T(x)\leq E_{vp}
+\end{aligned}
+\end{equation}
+並且，
+\begin{equation}
+K_{n,p}\equiv \frac{4}{3}\frac{\sqrt{2m_{n,p}^*\Delta E_{n,p}^3}}{q\hbar F}
+\end{equation}
+因此，綜上所述，TCAD之Hurkx模型參數僅為需要由實驗決定的缺陷能井$E_T$，以及等效穿隧質量$m_{n,p}^*$，並且此質量即為載子之加速度質量，列於表（\ref{t:tat-parameter}）中。
+\begin{table}[h]
+\begin{center}
+\caption[缺陷輔助穿隧模型參數]{缺陷輔助穿隧模型參數（Hurkx model）} \label{t:tat-parameter}
+\begin{tabular}{lccc}
+
+\hline
+  &  InP  & In$_{0.53}$Ga$_{0.47}$As & In$_{0.6}$Ga$_{0.4}$As$_{0.598}$P$_{0.402}$  \\
+\hline
+$m_n^*/m_0$	&  $0.08$~\cite{parks1996theoretical}	&	$0.0463$~\cite{parks1996theoretical}	&	$0.052$~\cite{paul1991empirical}\\
+$m_p^*/m_0$	&  $0.86$~\cite{wang2008dark}	&	$0.45$~\cite{wang2008dark}	&	$0.49$~\cite{goldberg1999handbook}\\
+$E_T$	&  Experiment	&	Experiment	&	Experiment\\
+\hline
+
+\end{tabular}
+\end{center}
+\end{table}
+\subsection{Hurkx模型有效性}
+上述所作近似與假設為
+\begin{enumerate}
+	\item 單能帶近似：$\displaystyle \vert \phi_m(\mathbf{R}_j)\vert \gg \vert \phi_n(\mathbf{R}_{j^\prime})\vert,\forall n\neq m$
+	\item 電位變化近似：$\displaystyle V_{jj^\prime}\approx V_\text{ext}(\mathbf{R}_j)\delta_{jj^\prime}$
+	\item 摻質濃度近似：$V(x)=qFx$
+	\item 拋物球狀能帶近似：$E(\mathbf{k})\approx \hbar^2k^2/2m^*$
+\end{enumerate}
+底下我將一一討論之。
+\subsubsection{單能帶近似}
+為了討論單能帶假設造成的誤差，我們得放鬆這個假設，並討論在何種情況下，才能夠合理地做此近似。在做這一切近似之前，我們推論起點為由瓦尼爾函數展開之薛丁格方程式（\ref{eq:wannier-plug-in-schrodinger-eq}），在此我們保留$\sum_{j^\prime}V_{jj^\prime}\phi(\mathbf{R}_{j^\prime})$，並且將第一項$\sum(H_0)_{jj^\prime}\phi(\mathbf{R}_{j^\prime})$代入方程式（\ref{eq:EMA-energy-translation-operator}）、（\ref{eq:EMA-translation-operator}），可得到
+\begin{equation}
+\label{eq:multi-band-schrodinger-eq}
+E_n\left(-i\nabla\right)\phi_n(\mathbf{r})+V(\mathbf{r})\phi_n(\mathbf{r})+\sum_{n^\prime(\neq n)}V_{nn^\prime}\phi_{n^\prime}(\mathbf{r})=E\phi_n(\mathbf{r})
+\end{equation}
+因此，倘若構成電子波函數的不僅有傳導帶上之瓦尼爾函數（$n=c$），還包括了價帶上之瓦尼爾函數（$n=v$），那麼我們可藉此雙能帶近似（two-band approximation）來討論單能帶近似條件。針對傳導帶與價帶展開方程式（\ref{eq:multi-band-schrodinger-eq}）可得
+\begin{equation}
+\begin{aligned}
+&E_c(-i\nabla)\phi_c(\mathbf{r})+V(\mathbf{r})\phi_c(\mathbf{r})+V_{vc}\phi_v(\mathbf{r})=E\phi_c(\mathbf{r})\\[5pt]
+&E_v(-i\nabla)\phi_v(\mathbf{r})+V(\mathbf{r})\phi_v(\mathbf{r})+V_{cv}\phi_c(\mathbf{r})=E\phi_v(\mathbf{r})
+\end{aligned}
+\end{equation}
+接著先令$V_{vc}=0$，計算出$\phi_c(\mathbf{r})$，即可由下式求出$\phi_v(\mathbf{r})$，再代回原式求出更進一步的$\phi_c(\mathbf{r})$，可如此遞迴下去以得到穩定的$\phi_c$、$\phi_v$。不過在此我們做一次迭代即可（零階近似，zeroth-order approximation）：
+\begin{equation}
+\left[E_v(-i\nabla)+V(\mathbf{r})-E\right]\phi_v(\mathbf{r})=-V_{cv}\phi_c(\mathbf{r})
+\end{equation}
+我們令$E_v(-i\nabla)=-E_g-E_v^\prime$，如圖（\ref{fig:single-band-approximation}）所示，代入可得
+\begin{equation}
+\left[-E_g-E_v^\prime(-i\nabla)+V(\mathbf{r})-E\right]\phi_v(\mathbf{r})=-V_{cv}\phi_c(\mathbf{r})
+\end{equation}
+因此，倘若$E_g\gg E_v^\prime(\mathbf{k})$，那麼就可以得到
+\begin{equation}
+\left[-E_g-0+V(\mathbf{r})-E\right]\phi_v(\mathbf{r})\approx-V_{cv}\phi_c(\mathbf{r})
+\end{equation}
+接著由於$V(\mathbf{r})$與$E$通常有著相同的數量級，所以得到
+\begin{equation}
+-E_g\phi_v(\mathbf{r})\approx-V_{cv}\phi_c(\mathbf{r})\quad\to\quad \vert\phi_v(\mathbf{r})\vert\approx\left\vert\frac{V_{cv}}{E_g}\right\vert\left\vert\phi_c(\mathbf{r})\right\vert
+\end{equation}
+\begin{figure}
+\centering
+\includegraphics[width=0.6\textwidth]{files/single-band-approximation.png}
+\caption{傳導帶與價帶之能量關係示意圖}
+\label{fig:single-band-approximation}
+\end{figure}
+進一步而言，通常$\vert V_{cv}\vert<\vert E\vert\approx\vert V_\text{applied}\vert$，所以
+\begin{equation}
+\vert\phi_v(\mathbf{r})\vert\approx\left\vert\frac{V_\text{applied}}{E_g}\right\vert\left\vert\phi_c(\mathbf{r})\right\vert
+\end{equation}
+因此，倘若元件偏壓太大，大到超過能隙$E_g$的程度，那麼此近似可能就不再成立。L.V.Keldysh在1963年有提出同時考慮傳導帶與價帶並解出等效質量近似的辦法，詳見~\cite{keldysh1964deep}。
+\subsubsection{電位變化近似}
+此近似要求的是電位在兩單位晶格間之電位變化足夠小，因此假設晶體偏壓$V_\text{applied}$均勻分配在$x$方向之每個單位晶胞中，那麼可得
+\begin{equation}
+V_\text{ext}(\mathbf{R}_{j+1})-V_\text{ext}(\mathbf{R}_{j})\approx \frac{V_\text{applied}}{N_x}\approx\frac{V_\text{applied}}{N^{1/3}}
+\end{equation}
+由於原子數極高，所以除了在空乏區邊緣可能會有$\Delta V\approx V$的情形以外，其餘位置皆可滿足$\Delta V\ll V$的條件，所以基本上此近似幾乎都是成立的。
+\subsubsection{摻質濃度近似}
+根據高斯定律，在均勻摻質濃度$\rho=q(N_D-N_A)$的情況下，
+\begin{equation}
+\frac{dF}{dx}=\frac{q(N_D-N_A)}{\epsilon}
+\end{equation}
+其電場$F$與電位能$V$分佈為
+\begin{equation}
+\begin{aligned}
+F(x)&=-F_\text{max}+\frac{q(N_D-N_A)}{\epsilon}x\\[5pt]
+V(x)&=V(0)-qF_\text{max}x+\frac{q^2(N_D-N_A)}{2\epsilon}x^2
+\end{aligned}
+\end{equation}
+\hspace{2em}因此，Hurkx的$V(x)=qFx$假設顯然蘊涵了沒有摻質的假設。不過雖然實際摻雜濃度不為零，使得電場會隨著位置而改變，但由於我們元件的倍增層與吸收層摻質濃度都相當低，所以我認為將該兩區電場視為常數並使用Hurkx模型之誤差並不大，詳見第\ref{c:design}、\ref{c:experiment}章。
+\subsubsection{拋物球狀能帶近似}
+所謂的拋物球狀近似，$E(\mathbf{k})\approx\hbar^2k^2/2m^*$，其實假設了電子只會在$\Gamma$谷（valley）之中，然而對於我們的倍增層InP而言，由於$\Gamma$谷等效質量不大，以及InP處之電場特別大，所以電子很容易具有高能量，產生谷間散射（intervalley scattering），使得前述之單能帶近似不再成立，拋物球狀能帶近似也就不成立。除此之外，即便僅有谷內散射（intravalley scattering），這時也因其具有高能量而必須考慮能帶之非拋物性（nonparabolicity），使得用來考慮等效質量近似之哈密頓$E(-i\nabla)+V$變得十分複雜，因此很可能不適用於具有高電場之InP倍增層。反之，對於低電場的吸收層In$_{0.53}$Ga$_{0.47}$As。
+
+圖（\ref{fig:monte-carlo-simulation-InP}）是InP在不同均勻電場下，電子能量與其於各谷之分佈關係~\cite{osaka1986analysis}，由此可知當電場高於$10^4\left.\mathrm{V}/\mathrm{cm}\right.$，電子就逐漸由$\Gamma$谷散射至$L$谷。而由於InP之崩潰電場為$10^5\left.\mathrm{V}/\mathrm{cm}\right.$數量級，所以大部分的電子很可能已經散射至$L$谷。
+\begin{figure*}
+        \centering
+        \begin{subfigure}[b]{0.45\textwidth}
+            \centering
+            \includegraphics[width=\textwidth]{files/MonteCarlo-8e3.png}
+            \label{fig:MonteCarlo-a}
+        \end{subfigure}
+        \hfill
+        \begin{subfigure}[b]{0.475\textwidth}  
+            \centering 
+            \includegraphics[width=\textwidth]{files/MonteCarlo-1.2e4.png}    
+            \label{fig:MonteCarlo-b}
+        \end{subfigure}
+        \vskip\baselineskip
+        \begin{subfigure}[b]{0.45\textwidth}   
+            \centering 
+            \includegraphics[width=\textwidth]{files/MonteCarlo-6.4e4.png} 
+            \label{fig:MonteCarlo-c}
+        \end{subfigure}
+        \quad
+        \begin{subfigure}[b]{0.475\textwidth}   
+            \centering 
+            \includegraphics[width=\textwidth]{files/MonteCarlo-3e5.png}  
+            \label{fig:MonteCarlo-d}
+        \end{subfigure}
+        \caption[InP電子分佈函數之蒙地卡羅模擬]
+        {InP電子分佈函數之蒙地卡羅模擬~\cite{osaka1986analysis}} 
+        \label{fig:monte-carlo-simulation-InP}
+\end{figure*}
+\subsection{原初生命期}
+所謂的原初生命期即方程式（\ref{eq:TAT-SRH-recombination-model}）中之$\tau_{p0}$與$\tau_{n0}$。在Sentaurus TCAD中，由於經常在矽中觀察到摻質濃度與生命期之關係，即所謂的夏菲特關係（Scharfetter relation）~\cite{fossum1982physical}\cite{fossum1983carrier}，所以軟體預設了Scharfetter生命期模型：
+\begin{equation}
+\label{eq:Scharfetter-relation}
+\tau_\text{dop}(N_A+N_D)=\tau_\text{min}+\frac{\tau_\text{max}-\tau_\text{min}}{1+\left(\dfrac{N_A+N_D}{N_\text{ref}}\right)^\gamma}
+\end{equation}
+\hspace{2em}然而，對於InP與In$_{0.53}$Ga$_{0.47}$As而言，此關係並不明顯。雖然有些人會藉圖（\ref{fig:effective-lifetimen}）來說明InP也具有夏菲特關係，但這並非原初生命期，而是與測量生命期時所注入之過量載子濃度、摻質濃度等相對大小有關的等效生命期（effective lifetime），至於原初生命期則仍須從此關係中萃取出來。
+\begin{figure}[h]
+\centering
+\includegraphics[width=1\textwidth]{files/effective-lifetime.png}
+\caption[InP之等效生命期]{InP之等效生命期~\cite{liu1999excess}\cite{rosenwaks1992picosecond}\cite{yater1994minority}\cite{jenkins1991minority}\cite{landis1991photoluminescence}\cite{inspec1991properties}\cite{bothra1991surface}\cite{rosenwaks1991evidence}\cite{ahrenkiel1988photoluminescence}，其中[N]、[P]表示該實驗樣品之摻雜性質。}
+\label{fig:effective-lifetimen}
+\end{figure}
+舉例而言，由於等效生命期定義為~\cite{orton1990electrical}
+\begin{equation}
+\tau_\text{eff}\equiv\frac{\Delta n}{R_\text{net}}
+\end{equation}
+其中，$\Delta n$為隨時間改變的過量載子濃度（excess carrier concentration），並且載子復合可分為輻射與非輻射機制，即$R_\text{net}=R_\text{r}+R_\text{nr}$，在N型InP中，因此倘若假設$\Delta n\approx\Delta p$，所以
+\begin{equation}
+R_r=B\left[(n_0+\Delta n)(p_0+\Delta p)-n_0p_0\right]\approx B(n_0+\Delta n)\Delta n
+\end{equation}
+其中，$B$為輻射復合速率常數（radiative recombination rate constant）。而對於非輻射機制，考慮SRH復合模型，
+\begin{equation}
+\begin{aligned}
+R_\text{nr}&=\frac{(n_0+\Delta n)(p_0+\Delta p)-n_0p_0}{\tau_{p0}(n_0+\Delta n+n_1)+\tau_{n0}(p_0+\Delta p+p_1)}\\[5pt]
+&\approx\frac{(n_0+\Delta n)\Delta n}{\tau_{p0}(n_0+\Delta n+n_1)+\tau_{n0}(p_0+\Delta n+p_1)}
+\end{aligned}
+\end{equation}
+因此，在過量載子濃度足夠低的情況下（low-injection level），$n_0\gg p_0\gg\Delta n,p_1,n_1$，可以得到
+\begin{equation}
+\begin{aligned}
+R_\text{r}&\approx Bn_0\Delta n\\[5pt]
+R_\text{nr}&\approx \frac{n_0\Delta n}{\tau_{p0}n_0+\tau_{n0}p_0}
+\end{aligned}
+\end{equation}
+使得總復合速率為：
+\begin{equation}
+R_\text{net}\approx\left(B+\frac{1}{\tau_{p0}n_0+\tau_{n0}p_0}\right)n_0\Delta n
+\end{equation}
+因此，代入$\tau_\text{eff}=\Delta n/R_\text{net}$，可得等效生命期為
+\begin{equation}
+\label{eq:effective-lifetime-example}
+\tau_\text{eff}=\frac{\tau_{p0}+\tau_{n0}p_0/n_0}{1+Bn_0\left(\tau_{p0}+\tau_{n0}p_0/n_0\right)}\approx \frac{\tau_{p0}}{1+Bn_0\tau_{p0}}
+\end{equation}
+因此，就以這例子來說，需要進一步改變摻雜濃度$n_0$，然後觀察$\tau_\text{eff}$對$n_0$之關係，並用方程式（\ref{eq:effective-lifetime-example}）擬合，才能夠得到SRH原初生命期，詳見~\cite{yater1994minority}。此外，Ahrenkiel有對於常見的光致發光（Photoluminescence）實驗結果提出理論模型~\cite{ahrenkiel1988photoluminescence}：
+\begin{equation}
+\label{eq:PL-fitting-equation}
+I(t)\approx F_0\exp\left(-\frac{t}{\tau_\text{eff}}\right)\left[\frac{e^{\alpha^2D_nt}}{\alpha}\;\text{erfc}\left(\alpha\sqrt{D_nt}\right)\right]
+\end{equation}
+其中，$I(t)$為隨時間衰退的晶體發光強度（intensity），
+\begin{equation}
+I(t)\equiv\int_V\exp\left(-\beta x\right)\Delta ndV
+\end{equation}
+$\alpha$為晶體對該光源的吸收係數（absorption coefficient），$\beta$為晶體對本身發出的光的自吸收係數（self-absorption coefficient），並假設$\beta\ll\alpha$，$D_n$則為電子擴散率（diffusivity）。因此，在測量到發光強度$I(t)$後，可將方程式（\ref{eq:PL-fitting-equation}）對$I(t)$擬合，以求出等效生命期$\tau_\text{eff}$。然而上述情況是等效生命期與過量載子濃度無關的理想狀況，即$\tau_\text{eff}$並非$\Delta n$之函數。倘若$\tau_\text{eff}=\tau_\text{eff}(\Delta n)$，那麼則需要用數值模擬的方式來求得SRH原初生命期~\cite{liu1999excess}。圖（\ref{fig:srh-lifetime}）為目前已知的InP原初生命期數據，因為現有數據太少，所以並沒辦法確定其生命期應為多少。
+
+有許多因素會影響生命期，例如高濃度的SRH復合中心會造成非常短的等效生命期~\cite{liu1999excess}，並且P型摻質可能會誘導出較深的復合中心~\cite{liu1999excess}，使得P型晶體之等效生命期通常都比N型來得小~\cite{liu1999excess}\cite{rosenwaks1992picosecond}。
+製程也對生命期有顯著影響~\cite{yater1994minority}\cite{jenkins1991minority}，例如差排（dislocation）與摻質都可作為復合中心~\cite{yamaguchi1981electron}。化合物半導體之成分組成也會對生命期有影響~\cite{ahrenkiel1988photoluminescence}。因此，目前並沒有辦法確定InP與In$_{0.53}$Ga$_{0.47}$As之原初生命期。\\
+\begin{figure}[h]
+\centering
+\includegraphics[width=1\textwidth]{files/srh-lifetime.png}
+\caption[InP之原初生命期]{InP之原初生命期~\cite{liu1999excess}\cite{parks1996theoretical}\cite{wang2008dark}\cite{yater1994minority}\cite{xu2016extracting}}
+\label{fig:srh-lifetime}
+\end{figure}
+\hspace{2em}綜上所述，生命期很可能僅能透過實驗數據擬合得來，詳見第\ref{cs:TAT-fitting}節。而在TCAD中，倘若沒有開啟Scharfetter生命期模型，TCAD會將載子之原初生命期$\tau_0$設定為方程式（\ref{eq:Scharfetter-relation}）中之$\tau_\text{max}$，並忽略$\tau_\text{min}$、$N_\text{ref}$與$\gamma$參數。因此其模型參數列於表（\ref{t:scharfetter-parameter}）。
+\begin{table}[h]
+\begin{center}
+\caption[Scharfetter生命期模型參數]{原初生命期模型參數（Scharfetter model）} \label{t:scharfetter-parameter}
+\begin{tabular}{lccc}
+
+\hline
+  &  InP  & In$_{0.53}$Ga$_{0.47}$As & In$_{0.6}$Ga$_{0.4}$As$_{0.598}$P$_{0.402}$  \\
+\hline
+$\tau_\text{min}$	& None	&	None	&	None	\\
+$\tau_\text{max}$	&  Experiment	&	Experiment	&	Experiment\\
+$N_\text{ref}$	&  	None	&	None	&	None	\\
+$\gamma$ &	None	&	None	&	None	\\
+\hline
+
+\end{tabular}
+\end{center}
+\end{table}
+\section{撞擊游離模型}
+撞擊游離係數模型基本上是依循著Chynoweth law~\cite{chynoweth1958ionization}而建立，並且Capasso對於撞擊游離物理機制作了非常詳細全面的解說~\cite{capasso1985physics}，
+\begin{equation}
+\alpha(F)=A\exp\left(-\frac{B}{F}\right)
+\end{equation}
+其中，$F$為該位置上之電場（$\mathrm{V}/\mathrm{cm}$）。這些模型同樣藉由再生速率（generation rate）的形式與電流密度建立連結：
+\begin{equation}
+G_\text{ii}=\alpha_n nv_n+\alpha_p pv_p
+\end{equation}
+其中，$v$為載子漂移速度（drift velocity）。基於游離係數與溫度、電場以及局域性的不同關係，TCAD至少提供了Van Overstraeten-de Man模型~\cite{van1970measurement}、Okuto-Crowell模型~\cite{okuto1975threshold}以及Lackner模型~\cite{lackner1991avalanche}。雖然本研究並沒有用到Lackner模型，但因為它能夠模擬撞擊游離現象的非局域性~\cite{lackner1991avalanche}\cite{okuto1974ionization}\cite{spinelli1996dead}\cite{mcintyre1999new}，而這在極薄倍增層時會顯著發生，所以還是有其重要性。
+\subsection{Van Overstraeten-de Man模型}
+此模型的特點為，能夠藉由中介電場$F_0$，將電場範圍劃分成兩不同子範圍，並依序使用不同的$A$、$B$係數。而這些係數隨溫度的變化關係為
+\begin{equation}
+\begin{aligned}
+A=\gamma a,\quad&B=\gamma b,&\gamma\equiv\frac{\tanh\left(\dfrac{\hbar\omega_\text{op}}{2kT_0}\right)}{\tanh\left(\dfrac{\hbar\omega_\text{op}}{2kT}\right)}
+\end{aligned}
+\end{equation}
+其中，$\omega_\text{op}$為變溫擬合參數，$T_0$為TCAD預設之常溫$300\left.\mathrm{K}\right.$，$a$、$b$則為$A$、$B$係數於常溫之數值。因此，對於不同的電場範圍，其游離係數為
+\begin{equation}
+\alpha=
+\begin{cases}
+\gamma a_\text{low}\exp\left(-\dfrac{\gamma b_\text{low}}{F}\right),&F\leq F_0\\[15pt]
+\gamma a_\text{high}\exp\left(-\dfrac{\gamma b_\text{high}}{F}\right),&F_0\leq F
+\end{cases}
+\end{equation}
+\hspace{2em}Cook於1982年提出適合此模型的InP參數~\cite{cook1982electron}，參數有三段電場範圍，分別是$2.4-3.8\times10^5\left.\mathrm{V}/\mathrm{cm}\right.$、$3.8-5.6\times10^5\left.\mathrm{V}/\mathrm{cm}\right.$以及$5.3-7.7\times10^5\left.\mathrm{V}/\mathrm{cm}\right.$。然而，\cite{cook1982electron}僅有在$T_0=300\left.\mathrm{K}\right.$之參數，所以其$\hbar\omega_\text{op}$暫定為矽的$0.063\left.\mathrm{eV}\right.$~\cite{van1970measurement}，在此取其中$2.4-5.6\times10^5\left.\mathrm{V}/\mathrm{cm}\right.$範圍之兩段參數，以$F_0=3.8\times10^5\left.\mathrm{V}/\mathrm{cm}\right.$為中介電場，列於表（\ref{t:ii-InP-Van-Overstraeten-parameter}）。
+
+Pearsall於1980年提出In$_{0.53}$Ga$_{0.47}$As在$2\times10^5\left.\mathrm{V}/\mathrm{cm}\right.$至$2.5\times10^5\left.\mathrm{V}/\mathrm{cm}\right.$電場範圍之游離係數~\cite{capasso1985physics}\cite{pearsall1980impact}，並沒有分段電場範圍，也只有常溫參數，所以將其$F_0$設定為任意值，將$\hbar\omega_\text{op}$設定為矽的$0.063\left.\mathrm{eV}\right.$，並且不區分強場與弱場之參數，列於表（\ref{t:ii-InGaAs-Van-Overstraeten-parameter}）。
+
+最後則是InGaAsP，Osaka於1984提出對於$\langle100\rangle$ In$_{0.67}$Ga$_{0.33}$As$_{0.7}$P$_{0.3}$（$E_g=0.92\left.\mathrm{eV}\right.$）適用於$3.3\times10^5\left.\mathrm{V}/\mathrm{cm}\right.<F<4.3\times10^5\left.\mathrm{V}/\mathrm{cm}\right.$的常溫游離係數~\cite{osaka1984electron-a}，以及對於$\langle100\rangle$ In$_{0.82}$Ga$_{0.18}$As$_{0.39}$P$_{0.61}$（$E_g=1.11\left.\mathrm{eV}\right.$）適用於$4\times10^5\left.\mathrm{V}/\mathrm{cm}\right.<F<5\times10^5\left.\mathrm{V}/\mathrm{cm}\right.$的常溫游離係數~\cite{osaka1984electron-b}。此外，Takanashi與Horikoshi也於1979年針對In$_{0.89}$Ga$_{0.11}$As$_{0.74}$P$_{0.26}$（$E_g=1.13\left.\mathrm{eV}\right.$）提出適用於$2.85\times10^5\left.\mathrm{V}/\mathrm{cm}\right.<F<4\times10^5\left.\mathrm{V}/\mathrm{cm}\right.$的常溫游離係數~\cite{takanashi1979ionization}。由於僅有\cite{takanashi1979ionization}提供對於Chynoweth law的常溫擬合參數，所以在此我們僅引用其參數，列於表（\ref{t:ii-InGaAsP-Van-Overstraeten-parameter}）。
+
+\begin{table}[h]
+\begin{center}
+\caption[InP撞擊游離模型參數(1)]{InP撞擊游離模型參數（Van Overstraeten-de Man模型）~\cite{cook1982electron}} \label{t:ii-InP-Van-Overstraeten-parameter}
+\begin{tabular}{lccc}
+\hline
+ 參數 &	電子	&	電洞		&	單位	\\
+\hline
+$a_\text{low}$	&	$1.12\times10^7$	&	$4.79\times10^6$	&	$\mathrm{cm}^{-1}$	\\
+$a_\text{high}$	&	$2.93\times10^6$	&	$1.62\times10^6$	&	$\mathrm{cm}^{-1}$	\\
+$b_\text{low}$	&	$3.11\times10^6$	&	$2.55\times10^6$	&	$\mathrm{cm}^{-1}$	\\
+$b_\text{high}$	&	$2.64\times10^6$	&	$2.11\times10^6$	&	$\mathrm{cm}^{-1}$	\\
+$E_0$	&	$3.85\times10^5$	&	$3.85\times10^5$	&	$\mathrm{V}/\mathrm{cm}$	\\
+$\hbar\omega_\text{op}$	&	$0.063$	&	$0.063$	&	$\mathrm{eV}$	\\
+\hline
+
+\end{tabular}
+\end{center}
+\end{table}
+
+\begin{table}[h]
+\begin{center}
+\caption[In$_{0.53}$Ga$_{0.47}$As撞擊游離模型參數]{In$_{0.53}$Ga$_{0.47}$As撞擊游離模型參數（Van Overstraeten-de Man模型）\cite{pearsall1980impact}} \label{t:ii-InGaAs-Van-Overstraeten-parameter}
+\begin{tabular}{lccc}
+\hline
+ 參數 &	電子	&	電洞		&	單位	\\
+\hline
+$a_\text{low}$	&	$1.0\times10^9$	&	$1.38\times10^8$	&	$\mathrm{cm}^{-1}$	\\
+$a_\text{high}$	&	$1.0\times10^9$	&	$1.38\times10^8$	&	$\mathrm{cm}^{-1}$	\\
+$b_\text{low}$	&	$3.6\times10^6$	&	$2.7\times10^6$	&	$\mathrm{cm}^{-1}$	\\
+$b_\text{high}$	&	$3.6\times10^6$	&	$2.7\times10^6$	&	$\mathrm{cm}^{-1}$	\\
+$E_0$	&	$4\times10^5$	&	$4\times10^5$	&	$\mathrm{V}/\mathrm{cm}$	\\
+$\hbar\omega_\text{op}$	&	$0.063$	&	$0.063$	&	$\mathrm{eV}$	\\
+\hline
+
+\end{tabular}
+\end{center}
+\end{table}
+
+\begin{table}[h]
+\begin{center}
+\caption[In$_{0.89}$Ga$_{0.11}$As$_{0.74}$P$_{0.26}$撞擊游離模型參數]{In$_{0.89}$Ga$_{0.11}$As$_{0.74}$P$_{0.26}$撞擊游離模型參數（Van Overstraeten-de Man模型）\cite{takanashi1979ionization}} \label{t:ii-InGaAsP-Van-Overstraeten-parameter}
+\begin{tabular}{lccc}
+\hline
+ 參數 &	電子	&	電洞		&	單位	\\
+\hline
+$a_\text{low}$	&	$2.46\times10^8$	&	$2.15\times10^7$	&	$\mathrm{cm}^{-1}$	\\
+$a_\text{high}$	&	$2.46\times10^8$	&	$2.15\times10^7$	&	$\mathrm{cm}^{-1}$	\\
+$b_\text{low}$	&	$3.20\times10^6$	&	$3.07\times10^6$	&	$\mathrm{cm}^{-1}$	\\
+$b_\text{high}$	&	$3.20\times10^6$	&	$3.07\times10^6$	&	$\mathrm{cm}^{-1}$	\\
+$E_0$	&	$4\times10^5$	&	$4\times10^5$	&	$\mathrm{V}/\mathrm{cm}$	\\
+$\hbar\omega_\text{op}$	&	$0.063$	&	$0.063$	&	$\mathrm{eV}$	\\
+\hline
+
+\end{tabular}
+\end{center}
+\end{table}
+
+\subsection{Okuto-Crowell模型}
+相較於Van Overstraeten-de Man模型，Okuto-Crowell模型沒有分段電場範圍，並且其係數對溫度的關係為簡單的線性函數，如下所示：
+\begin{equation}
+\label{eq:Okuto-Crowell-model}
+\alpha(F)=a\left[1+c\left(T-T_0\right)\right]F^\gamma\exp\left\{-\left\{\frac{b\left[1+d\left(T-T_0\right)\right]}{F}\right\}^\delta\right\}
+\end{equation}
+\hspace{2em}雖然Taguchi於1986年提出InP在$25^{\circ}\mathrm{C}$至$175^{\circ}\mathrm{C}$下的InP游離係數~\cite{taguchi1986temperature}，但是由於Taguchi所使用的物理模型並非方程式（\ref{eq:Okuto-Crowell-model}），而是：
+\begin{equation}
+\label{eq:Baraff-Okuto-Crowell-equation}
+\alpha_{n,p}(F)=\left(\frac{qF}{E_\text{th}}\right)\exp\left\{0.217\left(\frac{E_\text{th}}{E_\text{R}}\right)^{1.14}-\left\{\left[0.217\left(\frac{E_\text{th}}{E_\text{R}}\right)^{1.14}\right]^2+\left(\frac{E_\text{th}}{qF\lambda}\right)^2\right\}^{1/2}\right\}
+\end{equation}
+因此，需要將上述模型給出的$\alpha_{n,p}(F)$，針對方程式（\ref{eq:Okuto-Crowell-model}）擬合，才能得到Okuto-Crowell模型可用的模型參數。至於方程式（\ref{eq:Baraff-Okuto-Crowell-equation}）則是Baraff經由波茲曼方程式（Boltzmann transport equation）發展的撞擊游離理論~\cite{baraff1962distribution}，爾後再經由Okuto與Crowell推導得出的——可用在較大電場範圍下的——解析方程式~\cite{okuto1972energy}。
+
+在方程式（\ref{eq:Baraff-Okuto-Crowell-equation}）中，$E_\text{th}$為載子發生撞擊游離所需之閾值能量（threshold energy），而InP之電子與電洞的常溫$E_\text{th}$依序為$1.84\left.\mathrm{eV}\right.$、$1.65\left.\mathrm{eV}\right.$~\cite{pearsall1979threshold}，並假設其與能隙之溫度係數皆為$-2.9\times10^{-4}\left.\mathrm{eV}/^\circ\mathrm{C}\right.$\cite{turner1964radiative}。根據~\cite{crowell1966temperature}，$E_R$為拉曼光聲子能量（Raman optical phonon energy），$\lambda$為產生光聲子所需之平均自由徑（carrier mean free path），並且兩者與溫度之關係為
+\begin{equation}
+\begin{aligned}
+E_\text{R}&=E_\text{R0}\tanh\left(\dfrac{E_\text{R0}}{2kT}\right)\\[5pt]
+\lambda&=\lambda_0\tanh\left(\dfrac{E_\text{R0}}{2kT}\right)
+\end{aligned}
+\end{equation}
+上述相關參數均列於表（\ref{t:ii-InP-Baraff-parameter}）中。最後，我的擬合結果如圖（\ref{fig:Okuto-all}）所示，而適用於方程式（\ref{eq:Okuto-Crowell-model}）之參數則列於表（\ref{t:ii-InP-Okuto-Crowell-parameter}）。從圖（\ref{fig:Okuto-all}）可以看到，直到電場小於$3\times10^5\left.\mathrm{V}/\mathrm{cm}\right.$前，$\alpha_n$、$\alpha_p$都有良好擬合。對於崩潰電場約為$5\times10^5\left.\mathrm{V}/\mathrm{cm}\right.$的InP而言，相信這樣的擬合結果足以給出合理的元件電性模擬。
+\begin{table}[h]
+\begin{center}
+\caption[InP之Baraff撞擊游離理論參數]{InP之Baraff撞擊游離理論參數\cite{taguchi1986temperature}} \label{t:ii-InP-Baraff-parameter}
+\begin{tabular}{lccccc}
+\hline
+ 參數 &	$E_\text{th}(\mathrm{eV})$	&	$E_\text{R0}(\mathrm{meV})$		&	$E_\text{R}(\mathrm{meV})$ at $25^\circ\mathrm{C}$	&	$\lambda_0$(\AA)	&	$\lambda$(\AA) at $25^\circ\mathrm{C}$\\
+\hline
+電子	&	$1.84$	&	$46$	&	$32.9$	&	$41.7$	&	$29.8$\\
+電洞	&	$1.65$	&	$36$	&	$21.8$	&	$41.3$	&	$25.0$\\
+\hline
+\end{tabular}
+\end{center}
+\end{table}
+\begin{table}[h]
+\begin{center}
+\caption[InP之撞擊游離模型參數(2)]{InP撞擊游離模型參數（Okuto-Crowell模型）} \label{t:ii-InP-Okuto-Crowell-parameter}
+\begin{tabular}{lccc}
+\hline
+ 參數 &	電子		&	電洞		&	單位		\\
+\hline
+$a$	&	$0.2885$	&	$4.6632$	&	$\mathrm{V}^{-1}$	\\
+$b$	&	$9.7885\times10^5$	&	$9.1762\times10^5$	&	$\mathrm{V}/\mathrm{cm}$	\\
+$c$ &	$3.2237\times10^{-4}$	&	$3.7237\times10^{-4}$	&	$\mathrm{K}^{-1}$\\
+$d$ &	$9.1731\times10^{-4}$	&	$1.0244\times10^{-3}$	&	$\mathrm{K}^{-1}$\\
+$\gamma$ &	$1.052$	&	$0.8623$	&	$[-]$	\\
+$\delta$ &	$1.8$	&	$1.8149$	&	$[-]$	\\
+\hline
+\end{tabular}
+\end{center}
+\end{table}
+\begin{figure}[h]
+\centering
+\includegraphics[width=1\textwidth]{files/Okuto-all.png}
+\caption[Baraff理論與Okuto-Crowell模型比較圖]{Baraff理論與Okuto-Crowell模型比較圖。可以看到對於電場高於$3\times10^5\left.\mathrm{V}/\mathrm{cm}\right.$的游離係數都有良好擬合。}
+\label{fig:Okuto-all}
+\end{figure}
+\subsection{InP文獻數據比較}\label{css:InP-ionization-comparison}
+現有文獻為Cook於1982年提出適合Van Overstraeten-de Man模型的實驗數據與模型參數~\cite{cook1982electron}，以及Taguchi於1986年提出適合Okuto-Crowell模型的變溫實驗數據，以及其Baraff理論參數~\cite{taguchi1986temperature}。因此我們可將兩者共同擁有的常溫參數加以做圖比較，如圖（\ref{fig:Cook_Taguchi_Comparison}）所示。從圖（\ref{fig:Cook_Taguchi_Comparison}）可看到Cook的游離係數在電場為$5\times10^5\left.\mathrm{V}/\mathrm{cm}\right.$時比Taguchi的游離係數還要大，所以採用Cook數據之Van Overstraeten-de Man模型預測的崩潰電壓會比採用Taguchi數據之Okuto-Crowell模型預測的崩潰電壓還要小。
+\begin{figure}[h]
+\centering
+\includegraphics[width=1\textwidth]{files/Cook_Taguchi_Comparison.png}
+\caption[Cook與Taguchi之InP游離係數比較圖]{Cook與Taguchi之InP游離係數比較圖~\cite{cook1982electron}\cite{taguchi1986temperature}。藍色實線為Van Overstraeten-de Man模型得出的游離係數，紅色實線為Okuto-Crowell模型得出的游離係數。}
+\label{fig:Cook_Taguchi_Comparison}
+\end{figure}
+\section{傳輸方程式}
+以物理角度而言，當元件在運作時，元件是處在非平衡態之熱力學系統。而描述非平衡態統計行為演化過程的方程式即為波茲曼方程式（Boltzmann transport equation）~\cite{jungel2009transport}：
+\begin{equation}
+\label{eq:boltzmann-transport-equation}
+\begin{aligned}
+\frac{\partial}{\partial t}f_n(\mathbf{r},\mathbf{k},t)+v_n(\mathbf{k})\cdot\nabla_xf_n-\frac{q\mathbf{E}}{\hbar}\cdot\nabla_\mathbf{k}f_n&=Q_n(f_n)+I_n(f_n,f_p)\\[5pt]
+\frac{\partial}{\partial t}f_p(\mathbf{r},\mathbf{k},t)+v_p(\mathbf{k})\cdot\nabla_xf_p-\frac{q\mathbf{E}}{\hbar}\cdot\nabla_\mathbf{k}f_p&=Q_p(f_p)+I_p(f_n,f_p)
+\end{aligned}
+\end{equation}
+其中，$\mathbf{E}$在此為電場，$f_n$、$f_p$為電子與電洞的費米—狄拉克分佈函數，$Q_n$（$Q_p$）為電子（電洞）之間的碰撞算符，$I_n$（$I_p$）為傳導帶中的電子（價帶中的電洞）經歷復合再生效應的算符，而$v_n$、$v_p$則為：
+\begin{equation}
+v_n(\mathbf{k})=\frac{1}{\hbar}\nabla_\mathbf{k}E_n(\mathbf{k}),\quad v_p(\mathbf{k})=\frac{1}{\hbar}\nabla_\mathbf{k}E_p(\mathbf{k})
+\end{equation}
+\hspace{2em}接著可藉由求矩法（Moment method）~\cite{jungel2009transport}\cite{jacoboni2010theory}求出零階矩的連續方程式（Zero-order moment：Continuity equations）、一階矩近似得來之漂移擴散方程式（drift-diffusion equations）與更高階矩之流體動力方程式（hydrodynamic equations）。也就是說，零階矩之波茲曼方程式會得到粒子數守恆律，一階矩得到粒子流密度守恆律，而更高階矩會得到能量守恆律（conservation of energy flux）。
+
+在Sentaurus TCAD中，連續方程式（continuity equation）為預設必要模型：
+\begin{equation}
+\begin{aligned}
+\nabla\cdot\mathbf{J}_n&=qR_\text{net,n}+q\frac{\partial n}{\partial t}\\[5pt]
+-\nabla\cdot\mathbf{J}_p&=qR_\text{net,p}+q\frac{\partial p}{\partial t}\\[5pt]
+\end{aligned}
+\end{equation}
+其中，$\mathbf{J}_{n,p}$為電子（電洞）電流，單位為$\mathrm{A}/\mathrm{cm}^2$，而$R_\text{net,n}$則為電子復合速率（recombination rate），單位為$\mathrm{cm}^{-3}\mathrm{s}^{-1}$，$n$（$p$）則為電子（電洞）濃度。
+
+而對於波茲曼方程式的更高階矩，TCAD提供了Drift-Diffusion、Thermodynamic、Hydrodynamic與Monte Carlo四種模型供選擇。Drift-Diffusion模型適合恆溫模擬。Thermodynamic模型適合用在高功率元件，適合模擬顯著之局部熱效應（self-heating）。Hydrodynamic模型適合用在強電場且需考慮載子能量時，並特別適合用在小面積元件上。最後的Monte-Carlo模擬則為在全能帶結構（full-band structure，即不取能帶結構之局部近似，如拋物球狀近似，$E\approx\hbar^2k^2/2m^*$），直接對波茲曼方程式（\ref{eq:boltzmann-transport-equation}）求解。
+
+當元件離熱平衡不遠時，Drift-Diffusion模型為波茲曼方程之良好近似~\cite{stratton1962diffusion}。然而，當元件處於強電場甚至發生崩潰現象時~\cite{sentaurus2016sdevice}\cite{stratton1962diffusion}，則需要進一步將波茲曼方程式取其更高階矩，以近似得出能考慮顯著熱流效應之流體動力模型（Hydrodynamic model）~\cite{stratton1962diffusion}。然而，雖然光偵測器因強電場造成之雪崩效應而不適合此方程式~\cite{stratton1962diffusion}，但經模擬比較發現其對崩潰電壓之預測以及對電流模擬之影響並不顯著，並且Drift-Diffusion模型之CPU演算時間足夠短，所以我們仍採用Drift-Diffusion模型~\cite{sentaurus2016sdevice}。
